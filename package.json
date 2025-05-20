@@ -1,0 +1,13 @@
+{
+  "name": "mon-app-store",
+  "version": "1.0.0",
+  "description": "Plateforme personnelle de distribution d'applications",
+  "main": "index.html",
+  "scripts": {
+    "start": "firebase serve",
+    "deploy": "firebase deploy"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.5"
+  }
+}

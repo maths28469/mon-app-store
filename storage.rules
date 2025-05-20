@@ -1,0 +1,26 @@
+﻿rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Fonction pour vérifier si l'utilisateur est connecté
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // Tout le monde peut lire les fichiers
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // Seuls les admins peuvent uploader des fichiers
+    match /apps/{appId}/{allFiles=**} {
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

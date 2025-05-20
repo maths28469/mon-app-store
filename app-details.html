@@ -7,6 +7,8 @@
     <title>Détails de l'application - Mon App Store</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
+    <!-- Bibliothèque Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -59,7 +61,8 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <!-- Inclusion des scripts dans le bon ordre -->
+    <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app-detail.js"></script>
 </body>

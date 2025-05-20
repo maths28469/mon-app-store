@@ -1,25 +1,22 @@
 ﻿// admin.js - Gestion de la partie administration avec Supabase
 
-import supabase from '../js/supabase-config.js';
-import { checkAuthStatus, isAdmin, showMessage } from '../js/auth.js';
-import {
-    loadApps,
-    getAppById,
-    addApp,
-    updateApp,
-    deleteApp,
-    generateStars
-} from '../js/apps.js';
-
 document.addEventListener('DOMContentLoaded', async () => {
     // Vérifier si l'utilisateur est connecté et est admin
     const isLoggedIn = await checkAuthStatus();
 
     if (!isLoggedIn || !isAdmin()) {
-        // Rediriger vers la page de connexion
-        window.location.href = '../index.html';
+        // Rediriger vers la page de connexion avec un message d'erreur
         showMessage('Vous n\'avez pas les droits pour accéder à l\'administration.', 'error');
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
         return;
+    }
+
+    // Mettre à jour le nom de l'admin dans la barre de navigation
+    const adminName = document.getElementById('admin-name');
+    if (adminName && currentUser) {
+        adminName.textContent = currentUser.name;
     }
 
     // Traiter la page en fonction de l'URL actuelle
@@ -59,7 +56,7 @@ async function updateStats() {
 
     try {
         // Récupérer le nombre total d'applications
-        const { data: apps, error: appsError } = await supabase
+        const { data: apps, error: appsError } = await supabaseClient
             .from('apps')
             .select('downloads');
 
@@ -69,7 +66,7 @@ async function updateStats() {
         const totalDownloadsCount = apps.reduce((sum, app) => sum + (app.downloads || 0), 0);
 
         // Récupérer le nombre total d'utilisateurs
-        const { count, error: usersError } = await supabase
+        const { count, error: usersError } = await supabaseClient
             .from('users')
             .select('*', { count: 'exact', head: true });
 
@@ -101,9 +98,12 @@ async function loadAppsTable() {
 
     if (!appsTableBody) return;
 
+    // Afficher un indicateur de chargement
+    appsTableBody.innerHTML = `<tr><td colspan="7" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Chargement des applications...</td></tr>`;
+
     try {
         // Charger les applications depuis Supabase
-        const { data: apps, error } = await supabase
+        const { data: apps, error } = await supabaseClient
             .from('apps')
             .select('*')
             .order('created_at', { ascending: false });
@@ -112,6 +112,12 @@ async function loadAppsTable() {
 
         // Vider le tableau
         appsTableBody.innerHTML = '';
+
+        // Vérifier si des applications ont été trouvées
+        if (!apps || apps.length === 0) {
+            appsTableBody.innerHTML = `<tr><td colspan="7" class="empty-cell">Aucune application disponible. <a href="add-app.html" class="btn primary">Ajouter une application</a></td></tr>`;
+            return;
+        }
 
         // Remplir le tableau avec les applications
         apps.forEach(app => {
@@ -129,28 +135,28 @@ async function loadAppsTable() {
             }
 
             row.innerHTML = `
-                <td><img src="${app.icon}" alt="${app.name} icon" class="app-icon-small"></td>
-                <td>${app.name}</td>
-                <td>${app.category}</td>
-                <td>${app.version}</td>
-                <td>${formattedDownloads}</td>
-                <td>
-                    <div class="app-rating">
-                        <div class="stars">${starsHTML}</div>
-                        <div class="rating-value">${app.rating.toFixed(1)}</div>
-                    </div>
-                </td>
-                <td>
-                    <div class="app-actions">
-                        <a href="edit-app.html?id=${app.id}" class="btn-edit" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <button class="btn-delete" title="Supprimer" data-id="${app.id}">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
+        <td><img src="${app.icon}" alt="${app.name} icon" class="app-icon-small"></td>
+        <td>${app.name}</td>
+        <td>${app.category}</td>
+        <td>${app.version}</td>
+        <td>${formattedDownloads}</td>
+        <td>
+          <div class="app-rating">
+            <div class="stars">${starsHTML}</div>
+            <div class="rating-value">${app.rating.toFixed(1)}</div>
+          </div>
+        </td>
+        <td>
+          <div class="app-actions">
+            <a href="edit-app.html?id=${app.id}" class="btn-edit" title="Modifier">
+              <i class="fas fa-edit"></i>
+            </a>
+            <button class="btn-delete" title="Supprimer" data-id="${app.id}">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </td>
+      `;
 
             // Ajouter un événement pour le bouton de suppression
             const deleteBtn = row.querySelector('.btn-delete');
@@ -164,6 +170,7 @@ async function loadAppsTable() {
         });
     } catch (error) {
         console.error("Erreur lors du chargement des applications:", error);
+        appsTableBody.innerHTML = `<tr><td colspan="7" class="error-cell">Erreur lors du chargement des applications. <button class="btn primary" onclick="loadAppsTable()">Réessayer</button></td></tr>`;
         showMessage('Erreur lors du chargement des applications.', 'error');
     }
 }
@@ -240,11 +247,11 @@ function setupAddAppForm() {
                     const screenshotDiv = document.createElement('div');
                     screenshotDiv.className = 'screenshot-preview';
                     screenshotDiv.innerHTML = `
-                        <img src="${e.target.result}" alt="Capture d'écran">
-                        <div class="remove-btn">
-                            <i class="fas fa-times"></i>
-                        </div>
-                    `;
+            <img src="${e.target.result}" alt="Capture d'écran">
+            <div class="remove-btn">
+              <i class="fas fa-times"></i>
+            </div>
+          `;
 
                     // Ajouter l'événement pour supprimer la capture d'écran
                     const removeBtn = screenshotDiv.querySelector('.remove-btn');
@@ -327,26 +334,36 @@ function setupAddAppForm() {
                 return;
             }
 
-            // Ajouter l'application
-            const loading = document.createElement('div');
-            loading.className = 'loading';
-            loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ajout de l\'application en cours...';
-            document.body.appendChild(loading);
+            // Désactiver le bouton de soumission pour éviter les soumissions multiples
+            const submitBtn = addAppForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ajout en cours...';
+            }
 
             try {
+                // Ajouter l'application
                 const success = await addApp(formData, iconFile, bannerFile, screenshotFiles, apkFile);
 
-                loading.remove();
-
                 if (success) {
+                    showMessage('Application ajoutée avec succès !', 'success');
+
+                    // Rediriger vers le tableau de bord après un court délai
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 1500);
+                } else {
+                    throw new Error('Échec de l\'ajout de l\'application');
                 }
             } catch (error) {
-                loading.remove();
                 console.error("Erreur lors de l'ajout de l'application:", error);
                 showMessage('Erreur lors de l\'ajout de l\'application.', 'error');
+
+                // Réactiver le bouton de soumission
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Ajouter l\'application';
+                }
             }
         });
     }
@@ -395,11 +412,11 @@ async function setupEditAppForm(appId) {
                 const screenshotDiv = document.createElement('div');
                 screenshotDiv.className = 'screenshot-preview';
                 screenshotDiv.innerHTML = `
-                    <img src="${screenshot}" alt="Capture d'écran">
-                    <div class="remove-btn">
-                        <i class="fas fa-times"></i>
-                    </div>
-                `;
+          <img src="${screenshot}" alt="Capture d'écran">
+          <div class="remove-btn">
+            <i class="fas fa-times"></i>
+          </div>
+        `;
 
                 // Ajouter l'événement pour supprimer la capture d'écran
                 const removeBtn = screenshotDiv.querySelector('.remove-btn');
@@ -479,13 +496,15 @@ async function setupEditAppForm(appId) {
                     return;
                 }
 
-                // Mettre à jour l'application
-                const loading = document.createElement('div');
-                loading.className = 'loading';
-                loading.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour de l\'application en cours...';
-                document.body.appendChild(loading);
+                // Désactiver le bouton de soumission pour éviter les soumissions multiples
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour en cours...';
+                }
 
                 try {
+                    // Mettre à jour l'application
                     const success = await updateApp(
                         appId,
                         formData,
@@ -495,17 +514,25 @@ async function setupEditAppForm(appId) {
                         apkFile
                     );
 
-                    loading.remove();
-
                     if (success) {
+                        showMessage('Application mise à jour avec succès !', 'success');
+
+                        // Rediriger vers le tableau de bord après un court délai
                         setTimeout(() => {
                             window.location.href = 'index.html';
                         }, 1500);
+                    } else {
+                        throw new Error('Échec de la mise à jour de l\'application');
                     }
                 } catch (error) {
-                    loading.remove();
                     console.error("Erreur lors de la mise à jour de l'application:", error);
                     showMessage('Erreur lors de la mise à jour de l\'application.', 'error');
+
+                    // Réactiver le bouton de soumission
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = "Mettre à jour l'application";
+                    }
                 }
             });
         }

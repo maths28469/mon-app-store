@@ -1,15 +1,12 @@
 ﻿// apps.js - Gestion des applications avec Supabase
 
-import supabase from './supabase-config.js';
-import { checkAuthStatus, isAdmin, showMessage } from './auth.js';
-
 // Variable pour stocker les applications
 let appsData = [];
 
 // Charger les applications depuis Supabase
 async function loadApps() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('apps')
       .select('*')
       .order('created_at', { ascending: false });
@@ -20,6 +17,7 @@ async function loadApps() {
     return appsData;
   } catch (error) {
     console.error("Erreur lors du chargement des applications:", error);
+    showMessage("Impossible de charger les applications", "error");
     return [];
   }
 }
@@ -31,28 +29,56 @@ document.addEventListener('DOMContentLoaded', async () => {
   const allAppsContainer = document.getElementById('all-apps-container');
 
   if (featuredAppsContainer && allAppsContainer) {
-    // Charger les applications depuis Supabase
-    await loadApps();
+    // Afficher un indicateur de chargement
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement des applications...';
+    allAppsContainer.parentNode.insertBefore(loadingIndicator, allAppsContainer);
 
-    // Afficher les applications vedettes
-    const featuredApps = appsData.filter(app => app.featured);
-    featuredApps.forEach(app => {
-      const appCard = createAppCard(app);
-      featuredAppsContainer.appendChild(appCard);
-    });
+    try {
+      // Charger les applications depuis Supabase
+      await loadApps();
 
-    // Afficher toutes les applications
-    appsData.forEach(app => {
-      const appCard = createAppCard(app);
-      allAppsContainer.appendChild(appCard);
-    });
+      // Supprimer l'indicateur de chargement
+      loadingIndicator.remove();
+
+      // Vérifier si des applications ont été trouvées
+      if (appsData.length === 0) {
+        const noAppsMessage = document.createElement('p');
+        noAppsMessage.className = 'no-apps-message';
+        noAppsMessage.textContent = "Aucune application disponible pour le moment.";
+        allAppsContainer.appendChild(noAppsMessage);
+        return;
+      }
+
+      // Afficher les applications vedettes
+      const featuredApps = appsData.filter(app => app.featured);
+
+      if (featuredApps.length > 0) {
+        featuredApps.forEach(app => {
+          const appCard = createAppCard(app);
+          featuredAppsContainer.appendChild(appCard);
+        });
+      } else {
+        featuredAppsContainer.innerHTML = '<p>Aucune application vedette pour le moment.</p>';
+      }
+
+      // Afficher toutes les applications
+      appsData.forEach(app => {
+        const appCard = createAppCard(app);
+        allAppsContainer.appendChild(appCard);
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'affichage des applications:", error);
+      loadingIndicator.innerHTML = '<p>Erreur lors du chargement des applications. Veuillez réessayer.</p>';
+    }
   }
 });
 
 // Obtenir une application par son ID
 async function getAppById(id) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('apps')
       .select('*')
       .eq('id', id)
@@ -70,7 +96,7 @@ async function getAppById(id) {
 // Télécharger une application
 async function downloadApp(appId) {
   // Vérifier si l'utilisateur est connecté
-  if (!checkAuthStatus()) {
+  if (!isLoggedIn()) {
     // Afficher le modal de connexion
     document.getElementById('login-modal').style.display = 'flex';
     return false;
@@ -79,42 +105,42 @@ async function downloadApp(appId) {
   try {
     const app = await getAppById(appId);
 
-    if (app) {
-      // Créer un lien de téléchargement
-      const downloadLink = document.createElement('a');
-      downloadLink.href = app.apk_file;
-      downloadLink.download = app.name.replace(/\s+/g, '_').toLowerCase() + '.apk';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
-      // Incrémenter le compteur de téléchargements
-      const { data, error } = await supabase
-        .from('apps')
-        .update({ downloads: (app.downloads || 0) + 1 })
-        .eq('id', appId);
-
-      if (error) throw error;
-
-      // Enregistrer le téléchargement dans la table downloads
-      const { data: downloadData, error: downloadError } = await supabase
-        .from('downloads')
-        .insert([
-          {
-            app_id: appId,
-            user_id: currentUser.id,
-            created_at: new Date().toISOString()
-          }
-        ]);
-
-      if (downloadError) throw downloadError;
-
-      showMessage(`Téléchargement de ${app.name} démarré !`, 'success');
-      return true;
+    if (!app) {
+      showMessage('Application non trouvée.', 'error');
+      return false;
     }
 
-    showMessage('Application non trouvée.', 'error');
-    return false;
+    // Créer un lien de téléchargement
+    const downloadLink = document.createElement('a');
+    downloadLink.href = app.apk_file;
+    downloadLink.download = app.name.replace(/\s+/g, '_').toLowerCase() + '.apk';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // Incrémenter le compteur de téléchargements
+    const { data, error } = await supabaseClient
+      .from('apps')
+      .update({ downloads: (app.downloads || 0) + 1 })
+      .eq('id', appId);
+
+    if (error) throw error;
+
+    // Enregistrer le téléchargement dans la table downloads
+    const { data: downloadData, error: downloadError } = await supabaseClient
+      .from('downloads')
+      .insert([
+        {
+          app_id: appId,
+          user_id: currentUser.id,
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+    if (downloadError) throw downloadError;
+
+    showMessage(`Téléchargement de ${app.name} démarré !`, 'success');
+    return true;
   } catch (error) {
     console.error("Erreur lors du téléchargement:", error);
     showMessage('Erreur lors du téléchargement.', 'error');
@@ -131,44 +157,48 @@ async function addApp(appData, iconFile, bannerFile, screenshotFiles, apkFile) {
       return false;
     }
 
+    // Génération d'un ID unique pour l'application
+    const appId = 'app_' + Date.now();
+
     // Upload de l'icône
-    const iconPath = `apps/icons/${Date.now()}_${iconFile.name}`;
-    const { data: iconData, error: iconError } = await supabase.storage
+    const iconPath = `apps/${appId}/icon.${iconFile.name.split('.').pop()}`;
+    const { error: iconError } = await supabaseClient.storage
       .from('appstore')
       .upload(iconPath, iconFile);
 
     if (iconError) throw iconError;
 
     // Obtenir l'URL de l'icône
-    const { data: iconUrl } = supabase.storage
+    const { data: iconUrl } = supabaseClient.storage
       .from('appstore')
       .getPublicUrl(iconPath);
 
     // Upload de la bannière
-    const bannerPath = `apps/banners/${Date.now()}_${bannerFile.name}`;
-    const { data: bannerData, error: bannerError } = await supabase.storage
+    const bannerPath = `apps/${appId}/banner.${bannerFile.name.split('.').pop()}`;
+    const { error: bannerError } = await supabaseClient.storage
       .from('appstore')
       .upload(bannerPath, bannerFile);
 
     if (bannerError) throw bannerError;
 
     // Obtenir l'URL de la bannière
-    const { data: bannerUrl } = supabase.storage
+    const { data: bannerUrl } = supabaseClient.storage
       .from('appstore')
       .getPublicUrl(bannerPath);
 
     // Upload des captures d'écran
     const screenshotUrls = [];
-    for (const file of screenshotFiles) {
-      const screenshotPath = `apps/screenshots/${Date.now()}_${file.name}`;
-      const { data: screenshotData, error: screenshotError } = await supabase.storage
+    for (let i = 0; i < screenshotFiles.length; i++) {
+      const file = screenshotFiles[i];
+      const screenshotPath = `apps/${appId}/screenshots/screen_${i}.${file.name.split('.').pop()}`;
+      const { error: screenshotError } = await supabaseClient.storage
         .from('appstore')
         .upload(screenshotPath, file);
 
       if (screenshotError) throw screenshotError;
 
       // Obtenir l'URL de la capture d'écran
-      const { data: screenshotUrl } = supabase.storage
+      const { data: screenshotUrl } = supabaseClient.storage
         .from('appstore')
         .getPublicUrl(screenshotPath);
 
@@ -176,20 +206,21 @@ async function addApp(appData, iconFile, bannerFile, screenshotFiles, apkFile) {
     }
 
     // Upload du fichier APK
-    const apkPath = `apps/apk/${Date.now()}_${apkFile.name}`;
-    const { data: apkData, error: apkError } = await supabase.storage
+    const apkPath = `apps/${appId}/apk/${appData.name.replace(/\s+/g, '_').toLowerCase()}.apk`;
+    const { error: apkError } = await supabaseClient.storage
       .from('appstore')
       .upload(apkPath, apkFile);
 
     if (apkError) throw apkError;
 
     // Obtenir l'URL de l'APK
-    const { data: apkUrl } = supabase.storage
+    const { data: apkUrl } = supabaseClient.storage
       .from('appstore')
       .getPublicUrl(apkPath);
 
     // Créer l'objet application
     const newApp = {
+      id: appId,
       name: appData.name,
       developer: appData.developer,
       short_description: appData.shortDescription,
@@ -210,14 +241,14 @@ async function addApp(appData, iconFile, bannerFile, screenshotFiles, apkFile) {
     };
 
     // Ajouter l'application à la base de données
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('apps')
       .insert([newApp]);
 
     if (error) throw error;
 
     showMessage('Application ajoutée avec succès !', 'success');
-    return data[0].id;
+    return appId;
   } catch (error) {
     console.error("Erreur lors de l'ajout de l'application:", error);
     showMessage('Erreur lors de l\'ajout de l\'application.', 'error');
@@ -256,15 +287,15 @@ async function updateApp(appId, appData, iconFile, bannerFile, screenshotFiles, 
 
     // Upload des nouveaux fichiers si fournis
     if (iconFile) {
-      const iconPath = `apps/icons/${Date.now()}_${iconFile.name}`;
-      const { data: iconData, error: iconError } = await supabase.storage
+      const iconPath = `apps/${appId}/icon.${iconFile.name.split('.').pop()}`;
+      const { error: iconError } = await supabaseClient.storage
         .from('appstore')
-        .upload(iconPath, iconFile);
+        .upload(iconPath, iconFile, { upsert: true });
 
       if (iconError) throw iconError;
 
       // Obtenir l'URL de l'icône
-      const { data: iconUrl } = supabase.storage
+      const { data: iconUrl } = supabaseClient.storage
         .from('appstore')
         .getPublicUrl(iconPath);
 
@@ -272,15 +303,15 @@ async function updateApp(appId, appData, iconFile, bannerFile, screenshotFiles, 
     }
 
     if (bannerFile) {
-      const bannerPath = `apps/banners/${Date.now()}_${bannerFile.name}`;
-      const { data: bannerData, error: bannerError } = await supabase.storage
+      const bannerPath = `apps/${appId}/banner.${bannerFile.name.split('.').pop()}`;
+      const { error: bannerError } = await supabaseClient.storage
         .from('appstore')
-        .upload(bannerPath, bannerFile);
+        .upload(bannerPath, bannerFile, { upsert: true });
 
       if (bannerError) throw bannerError;
 
       // Obtenir l'URL de la bannière
-      const { data: bannerUrl } = supabase.storage
+      const { data: bannerUrl } = supabaseClient.storage
         .from('appstore')
         .getPublicUrl(bannerPath);
 
@@ -289,16 +320,17 @@ async function updateApp(appId, appData, iconFile, bannerFile, screenshotFiles, 
 
     if (screenshotFiles && screenshotFiles.length > 0) {
       const screenshotUrls = [];
-      for (const file of screenshotFiles) {
-        const screenshotPath = `apps/screenshots/${Date.now()}_${file.name}`;
-        const { data: screenshotData, error: screenshotError } = await supabase.storage
+      for (let i = 0; i < screenshotFiles.length; i++) {
+        const file = screenshotFiles[i];
+        const screenshotPath = `apps/${appId}/screenshots/screen_new_${i}.${file.name.split('.').pop()}`;
+        const { error: screenshotError } = await supabaseClient.storage
           .from('appstore')
           .upload(screenshotPath, file);
 
         if (screenshotError) throw screenshotError;
 
         // Obtenir l'URL de la capture d'écran
-        const { data: screenshotUrl } = supabase.storage
+        const { data: screenshotUrl } = supabaseClient.storage
           .from('appstore')
           .getPublicUrl(screenshotPath);
 
@@ -309,15 +341,15 @@ async function updateApp(appId, appData, iconFile, bannerFile, screenshotFiles, 
     }
 
     if (apkFile) {
-      const apkPath = `apps/apk/${Date.now()}_${apkFile.name}`;
-      const { data: apkData, error: apkError } = await supabase.storage
+      const apkPath = `apps/${appId}/apk/${appData.name.replace(/\s+/g, '_').toLowerCase()}_v${appData.version}.apk`;
+      const { error: apkError } = await supabaseClient.storage
         .from('appstore')
         .upload(apkPath, apkFile);
 
       if (apkError) throw apkError;
 
       // Obtenir l'URL de l'APK
-      const { data: apkUrl } = supabase.storage
+      const { data: apkUrl } = supabaseClient.storage
         .from('appstore')
         .getPublicUrl(apkPath);
 
@@ -325,7 +357,7 @@ async function updateApp(appId, appData, iconFile, bannerFile, screenshotFiles, 
     }
 
     // Mettre à jour l'application dans la base de données
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('apps')
       .update(updateData)
       .eq('id', appId);
@@ -351,7 +383,7 @@ async function deleteApp(appId) {
     }
 
     // Supprimer l'application de la base de données
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('apps')
       .delete()
       .eq('id', appId);
@@ -398,41 +430,12 @@ function createAppCard(app) {
   return card;
 }
 
-// Générer les étoiles pour l'affichage de la note
-function generateStars(rating) {
-  const fullStars = Math.floor(rating);
-  const halfStar = rating % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-  let stars = '';
-
-  // Étoiles pleines
-  for (let i = 0; i < fullStars; i++) {
-    stars += '<i class="fas fa-star"></i>';
-  }
-
-  // Demi-étoile si nécessaire
-  if (halfStar) {
-    stars += '<i class="fas fa-star-half-alt"></i>';
-  }
-
-  // Étoiles vides
-  for (let i = 0; i < emptyStars; i++) {
-    stars += '<i class="far fa-star"></i>';
-  }
-
-  return stars;
-}
-
-// Exporter les fonctions
-export {
-  loadApps,
-  getAppById,
-  downloadApp,
-  addApp,
-  updateApp,
-  deleteApp,
-  appsData,
-  createAppCard,
-  generateStars
-};
+// Exposer les fonctions globalement
+window.loadApps = loadApps;
+window.getAppById = getAppById;
+window.downloadApp = downloadApp;
+window.addApp = addApp;
+window.updateApp = updateApp;
+window.deleteApp = deleteApp;
+window.appsData = appsData;
+window.createAppCard = createAppCard;

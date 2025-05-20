@@ -7,6 +7,8 @@
     <title>Inscription - Mon App Store</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
+    <!-- Bibliothèque Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -40,11 +42,12 @@
                     </div>
                     <div class="form-group">
                         <label for="password">Mot de passe</label>
-                        <input type="password" id="password" required>
+                        <input type="password" id="password" required minlength="6">
+                        <small>Le mot de passe doit comporter au moins 6 caractères</small>
                     </div>
                     <div class="form-group">
                         <label for="confirm-password">Confirmer le mot de passe</label>
-                        <input type="password" id="confirm-password" required>
+                        <input type="password" id="confirm-password" required minlength="6">
                     </div>
                     <button type="submit" class="btn primary">S'inscrire</button>
                 </form>
@@ -79,7 +82,8 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <!-- Inclusion des scripts dans le bon ordre -->
+    <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
 </body>
 

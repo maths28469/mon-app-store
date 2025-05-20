@@ -4,23 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajouter une application - Mon App Store</title>
+    <title>Ajouter une application - Admin - Mon App Store</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="../css/main.css" rel="stylesheet">
     <link href="../css/admin.css" rel="stylesheet">
+    <!-- Bibliothèque Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
     <header>
         <div class="container">
             <div class="logo">
-                <h1>Mon App Store</h1>
+                <h1>Admin - Mon App Store</h1>
             </div>
             <nav>
                 <ul>
-                    <li><a href="../index.html">Accueil</a></li>
-                    <li><a href="index.html">Administration</a></li>
-                    <li><a href="#" id="admin-name">Admin</a></li>
+                    <li><a href="index.html">Tableau de bord</a></li>
+                    <li><a href="../index.html">Retour au site</a></li>
+                    <li><span id="admin-name">Admin</span></li>
                 </ul>
             </nav>
         </div>
@@ -30,116 +32,105 @@
         <div class="container">
             <div class="admin-header">
                 <h2>Ajouter une application</h2>
-                <a href="index.html" class="btn secondary">Retour au tableau de bord</a>
             </div>
 
-            <form class="app-form" id="add-app-form">
-                <div class="form-row">
-                    <div class="form-column">
-                        <div class="form-group">
-                            <label for="app-name">Nom de l'application *</label>
-                            <input type="text" id="app-name" name="name" required>
+            <section class="admin-section">
+                <form id="add-app-form" class="app-form">
+                    <div class="form-grid">
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="app-name">Nom de l'application <span class="required">*</span></label>
+                                <input type="text" id="app-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-developer">Développeur <span class="required">*</span></label>
+                                <input type="text" id="app-developer" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-category">Catégorie <span class="required">*</span></label>
+                                <select id="app-category" required>
+                                    <option value="">Sélectionnez une catégorie</option>
+                                    <option value="Éducation">Éducation</option>
+                                    <option value="Divertissement">Divertissement</option>
+                                    <option value="Jeux">Jeux</option>
+                                    <option value="Musique">Musique</option>
+                                    <option value="Photo & Vidéo">Photo & Vidéo</option>
+                                    <option value="Productivité">Productivité</option>
+                                    <option value="Social">Social</option>
+                                    <option value="Utilitaires">Utilitaires</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-version">Version <span class="required">*</span></label>
+                                <input type="text" id="app-version" placeholder="Ex: 1.0.0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-size">Taille <span class="required">*</span></label>
+                                <input type="text" id="app-size" placeholder="Ex: 15.2 MB" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-featured">En vedette</label>
+                                <select id="app-featured">
+                                    <option value="false">Non</option>
+                                    <option value="true">Oui</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="app-developer">Développeur *</label>
-                            <input type="text" id="app-developer" name="developer" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="app-category">Catégorie *</label>
-                            <select id="app-category" name="category" required>
-                                <option value="">Sélectionnez une catégorie</option>
-                                <option value="Productivité">Productivité</option>
-                                <option value="Photo & Vidéo">Photo & Vidéo</option>
-                                <option value="Jeux">Jeux</option>
-                                <option value="Utilitaires">Utilitaires</option>
-                                <option value="Réseaux sociaux">Réseaux sociaux</option>
-                                <option value="Éducation">Éducation</option>
-                                <option value="Santé & Fitness">Santé & Fitness</option>
-                                <option value="Musique">Musique</option>
-                                <option value="Voyage">Voyage</option>
-                                <option value="Finance">Finance</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-column">
-                        <div class="form-group">
-                            <label for="app-version">Version *</label>
-                            <input type="text" id="app-version" name="version" required placeholder="ex: 1.0.0">
-                        </div>
-                        <div class="form-group">
-                            <label for="app-size">Taille *</label>
-                            <input type="text" id="app-size" name="size" required placeholder="ex: 5.2 MB">
-                        </div>
-                        <div class="form-group">
-                            <label for="app-featured">En vedette</label>
-                            <select id="app-featured" name="featured">
-                                <option value="false">Non</option>
-                                <option value="true">Oui</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="app-short-description">Description courte *</label>
-                    <input type="text" id="app-short-description" name="shortDescription" required maxlength="100"
-                        placeholder="Une brève description de votre application (max 100 caractères)">
-                </div>
-
-                <div class="form-group">
-                    <label for="app-full-description">Description complète *</label>
-                    <textarea id="app-full-description" name="fullDescription" required
-                        placeholder="Une description détaillée de votre application"></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-column">
-                        <div class="form-group">
-                            <label>Icône de l'application *</label>
-                            <div class="file-upload">
-                                <div class="file-upload-preview" id="icon-preview">
-                                    <i class="fas fa-image"></i>
-                                </div>
-                                <input type="file" id="app-icon" name="icon" accept="image/*" required>
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="app-short-description">Description courte <span
+                                        class="required">*</span></label>
+                                <textarea id="app-short-description" rows="3" maxlength="200" required></textarea>
+                                <small>200 caractères maximum</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-full-description">Description complète <span
+                                        class="required">*</span></label>
+                                <textarea id="app-full-description" rows="8" required></textarea>
                             </div>
                         </div>
                     </div>
-                    <div class="form-column">
-                        <div class="form-group">
-                            <label>Bannière de l'application *</label>
-                            <div class="file-upload">
-                                <div class="file-upload-preview" id="banner-preview">
-                                    <i class="fas fa-image"></i>
-                                </div>
-                                <input type="file" id="app-banner" name="banner" accept="image/*" required>
+
+                    <div class="form-section">
+                        <h3>Fichiers</h3>
+                        <div class="file-section">
+                            <div class="file-group">
+                                <label for="app-icon">Icône de l'application <span class="required">*</span></label>
+                                <input type="file" id="app-icon" accept="image/*" required>
+                                <div class="file-preview" id="icon-preview"></div>
+                            </div>
+                            <div class="file-group">
+                                <label for="app-banner">Bannière de l'application <span
+                                        class="required">*</span></label>
+                                <input type="file" id="app-banner" accept="image/*" required>
+                                <div class="file-preview" id="banner-preview"></div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="form-group">
-                    <label>Captures d'écran *</label>
-                    <div class="screenshots-upload" id="screenshots-container">
-                        <div class="add-screenshot" id="add-screenshot">
-                            <i class="fas fa-plus"></i>
-                            <span>Ajouter une capture</span>
+                        <div class="file-group">
+                            <label>Captures d'écran <span class="required">*</span></label>
+                            <input type="file" id="screenshots-input" accept="image/*" multiple style="display: none;">
+                            <div class="screenshots-container" id="screenshots-container">
+                                <button type="button" class="add-screenshot" id="add-screenshot">
+                                    <i class="fas fa-plus"></i>
+                                    Ajouter une capture d'écran
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="file-group">
+                            <label for="app-apk">Fichier APK <span class="required">*</span></label>
+                            <input type="file" id="app-apk" accept=".apk" required>
+                            <small>Fichier APK Android (.apk)</small>
                         </div>
                     </div>
-                    <input type="file" id="screenshots-input" accept="image/*" multiple style="display: none;">
-                </div>
 
-                <div class="form-group">
-                    <label>Fichier APK *</label>
-                    <div class="file-upload">
-                        <input type="file" id="app-apk" name="apk" accept=".apk" required>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-btn" class="btn secondary">Annuler</button>
+                        <button type="submit" class="btn primary">Ajouter l'application</button>
                     </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn secondary" id="cancel-btn">Annuler</button>
-                    <button type="submit" class="btn primary">Ajouter l'application</button>
-                </div>
-            </form>
+                </form>
+            </section>
         </div>
     </main>
 
@@ -149,14 +140,11 @@
         </div>
     </footer>
 
-    <!-- Script Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Nos scripts -->
-    <script type="module" src="../js/main.js"></script>
-    <script type="module" src="../js/auth.js"></script>
-    <script type="module" src="../js/apps.js"></script>
-    <script type="module" src="../js/admin.js"></script>
+    <!-- Inclusion des scripts dans le bon ordre -->
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/apps.js"></script>
+    <script src="../js/admin.js"></script>
 </body>
 
 </html>

@@ -227,6 +227,7 @@ async function login(email, password) {
 }
 
 // Inscription d'un utilisateur
+// Inscription d'un utilisateur
 async function register(name, email, password, confirmPassword) {
   // Vérifier si les mots de passe correspondent
   if (password !== confirmPassword) {
@@ -235,27 +236,32 @@ async function register(name, email, password, confirmPassword) {
   }
 
   try {
-    // Créer l'utilisateur
-    const { data, error } = await supabase.auth.signUp({
+    // Créer l'utilisateur dans Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password
     });
 
-    if (error) throw error;
+    if (authError) throw authError;
+
+    console.log("Utilisateur créé dans Auth:", authData);
 
     // Vérifier si c'est le premier utilisateur (pour en faire un admin)
     const { count, error: countError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true });
 
+    if (countError) console.error("Erreur count:", countError);
+
     const isFirstUser = count === 0;
+    console.log("Est premier utilisateur:", isFirstUser, "count:", count);
 
     // Ajouter l'utilisateur à la table users
     const { data: userData, error: userError } = await supabase
       .from('users')
       .insert([
         {
-          id: data.user.id,
+          id: authData.user.id,
           name,
           email,
           is_admin: isFirstUser,
@@ -263,7 +269,12 @@ async function register(name, email, password, confirmPassword) {
         }
       ]);
 
-    if (userError) throw userError;
+    if (userError) {
+      console.error("Erreur insertion:", userError);
+      throw userError;
+    }
+
+    console.log("Utilisateur ajouté à la table users:", userData);
 
     // Connecter l'utilisateur
     await login(email, password);
@@ -284,12 +295,7 @@ async function register(name, email, password, confirmPassword) {
   } catch (error) {
     console.error("Erreur d'inscription:", error);
 
-    if (error.message.includes('email')) {
-      showMessage('Cet email est déjà utilisé.', 'error');
-    } else {
-      showMessage('Erreur lors de l\'inscription.', 'error');
-    }
-
+    showMessage('Erreur lors de l\'inscription: ' + error.message, 'error');
     return false;
   }
 }

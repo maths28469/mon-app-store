@@ -145,6 +145,294 @@
     <script src="../js/auth.js"></script>
     <script src="../js/apps.js"></script>
     <script src="../js/admin.js"></script>
+    // A ajouter dans admin/add-app.html juste avant la fermeture
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Vérifier l'authentification
+        await checkAuthStatus();
+
+        // Vérifier si l'utilisateur est administrateur
+        if (!currentUser || !isUserAdmin) {
+            showMessage('Vous n\'avez pas les droits pour accéder à cette page.', 'error');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 1500);
+            return;
+        }
+
+        // Mettre à jour le nom de l'administrateur
+        const adminName = document.getElementById('admin-name');
+        if (adminName) {
+            adminName.textContent = currentUser.name;
+        }
+
+        // Configurer le formulaire d'ajout d'application
+        setupAddAppForm();
+    });
+
+    // Configurer le formulaire d'ajout d'application
+    function setupAddAppForm() {
+        // Prévisualiser l'icône
+        const appIcon = document.getElementById('app-icon');
+        const iconPreview = document.getElementById('icon-preview');
+
+        if (appIcon && iconPreview) {
+            appIcon.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        iconPreview.innerHTML = `<img src="${e.target.result}" alt="Icône prévisualisée">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Prévisualiser la bannière
+        const appBanner = document.getElementById('app-banner');
+        const bannerPreview = document.getElementById('banner-preview');
+
+        if (appBanner && bannerPreview) {
+            appBanner.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        bannerPreview.innerHTML = `<img src="${e.target.result}" alt="Bannière prévisualisée">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Gérer les captures d'écran
+        const addScreenshotBtn = document.getElementById('add-screenshot');
+        const screenshotsInput = document.getElementById('screenshots-input');
+        const screenshotsContainer = document.getElementById('screenshots-container');
+
+        if (addScreenshotBtn && screenshotsInput && screenshotsContainer) {
+            addScreenshotBtn.addEventListener('click', () => {
+                screenshotsInput.click();
+            });
+
+            screenshotsInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const reader = new FileReader();
+
+                    reader.onload = (e) => {
+                        const screenshotDiv = document.createElement('div');
+                        screenshotDiv.className = 'screenshot-preview';
+                        screenshotDiv.innerHTML = `
+                        <img src="${e.target.result}" alt="Capture d'écran">
+                        <div class="remove-btn">
+                            <i class="fas fa-times"></i>
+                        </div>
+                    `;
+
+                        // Ajouter l'événement pour supprimer la capture d'écran
+                        const removeBtn = screenshotDiv.querySelector('.remove-btn');
+                        removeBtn.addEventListener('click', () => {
+                            screenshotDiv.remove();
+                        });
+
+                        // Insérer avant le bouton d'ajout
+                        screenshotsContainer.insertBefore(screenshotDiv, addScreenshotBtn);
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Bouton d'annulation
+        const cancelBtn = document.getElementById('cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+        }
+
+        // Traitement du formulaire
+        const addAppForm = document.getElementById('add-app-form');
+        if (addAppForm) {
+            addAppForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Récupérer les valeurs du formulaire
+                const formData = {
+                    name: document.getElementById('app-name').value,
+                    developer: document.getElementById('app-developer').value,
+                    category: document.getElementById('app-category').value,
+                    version: document.getElementById('app-version').value,
+                    size: document.getElementById('app-size').value,
+                    featured: document.getElementById('app-featured').value,
+                    shortDescription: document.getElementById('app-short-description').value,
+                    fullDescription: document.getElementById('app-full-description').value
+                };
+
+                // Récupérer les fichiers
+                const iconFile = document.getElementById('app-icon').files[0];
+                const bannerFile = document.getElementById('app-banner').files[0];
+
+                // Récupérer les captures d'écran
+                const screenshotPreviews = document.querySelectorAll('.screenshot-preview img');
+                const screenshotFiles = [];
+
+                screenshotPreviews.forEach(img => {
+                    const src = img.src;
+                    if (src.startsWith('data:')) {
+                        // Convertir le data URL en Blob
+                        const arr = src.split(',');
+                        const mime = arr[0].match(/:(.*?);/)[1];
+                        const bstr = atob(arr[1]);
+                        let n = bstr.length;
+                        const u8arr = new Uint8Array(n);
+
+                        while (n--) {
+                            u8arr[n] = bstr.charCodeAt(n);
+                        }
+
+                        const blob = new Blob([u8arr], { type: mime });
+                        const file = new File([blob], `screenshot_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                        screenshotFiles.push(file);
+                    }
+                });
+
+                // Récupérer le fichier APK
+                const apkFile = document.getElementById('app-apk').files[0];
+
+                // Validation des champs requis
+                if (!formData.name || !formData.developer || !formData.category || !formData.version ||
+                    !formData.size || !formData.shortDescription || !formData.fullDescription ||
+                    !iconFile || !bannerFile || screenshotFiles.length === 0 || !apkFile) {
+
+                    showMessage('Veuillez remplir tous les champs requis et ajouter tous les fichiers nécessaires.', 'error');
+                    return;
+                }
+
+                // Désactiver le bouton de soumission pour éviter les soumissions multiples
+                const submitBtn = addAppForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ajout en cours...';
+                }
+
+                try {
+                    // Générer un ID unique pour l'application
+                    const appId = 'app_' + Date.now();
+
+                    // Upload de l'icône
+                    const iconPath = `apps/${appId}/icon.${iconFile.name.split('.').pop()}`;
+                    const { error: iconError } = await supabaseClient.storage
+                        .from('appstore')
+                        .upload(iconPath, iconFile);
+
+                    if (iconError) throw iconError;
+
+                    // Obtenir l'URL de l'icône
+                    const { data: iconUrl } = supabaseClient.storage
+                        .from('appstore')
+                        .getPublicUrl(iconPath);
+
+                    // Upload de la bannière
+                    const bannerPath = `apps/${appId}/banner.${bannerFile.name.split('.').pop()}`;
+                    const { error: bannerError } = await supabaseClient.storage
+                        .from('appstore')
+                        .upload(bannerPath, bannerFile);
+
+                    if (bannerError) throw bannerError;
+
+                    // Obtenir l'URL de la bannière
+                    const { data: bannerUrl } = supabaseClient.storage
+                        .from('appstore')
+                        .getPublicUrl(bannerPath);
+
+                    // Upload des captures d'écran
+                    const screenshotUrls = [];
+                    for (let i = 0; i < screenshotFiles.length; i++) {
+                        const file = screenshotFiles[i];
+                        const screenshotPath = `apps/${appId}/screenshots/screen_${i}.${file.name.split('.').pop()}`;
+                        const { error: screenshotError } = await supabaseClient.storage
+                            .from('appstore')
+                            .upload(screenshotPath, file);
+
+                        if (screenshotError) throw screenshotError;
+
+                        // Obtenir l'URL de la capture d'écran
+                        const { data: screenshotUrl } = supabaseClient.storage
+                            .from('appstore')
+                            .getPublicUrl(screenshotPath);
+
+                        screenshotUrls.push(screenshotUrl.publicUrl);
+                    }
+
+                    // Upload du fichier APK
+                    const apkPath = `apps/${appId}/apk/${formData.name.replace(/\s+/g, '_').toLowerCase()}.apk`;
+                    const { error: apkError } = await supabaseClient.storage
+                        .from('appstore')
+                        .upload(apkPath, apkFile);
+
+                    if (apkError) throw apkError;
+
+                    // Obtenir l'URL de l'APK
+                    const { data: apkUrl } = supabaseClient.storage
+                        .from('appstore')
+                        .getPublicUrl(apkPath);
+
+                    // Créer l'objet application
+                    const newApp = {
+                        id: appId,
+                        name: formData.name,
+                        developer: formData.developer,
+                        short_description: formData.shortDescription,
+                        full_description: formData.fullDescription,
+                        icon: iconUrl.publicUrl,
+                        banner: bannerUrl.publicUrl,
+                        screenshots: screenshotUrls,
+                        category: formData.category,
+                        rating: 0,
+                        downloads: 0,
+                        version: formData.version,
+                        size: formData.size,
+                        release_date: new Date().toISOString(),
+                        apk_file: apkUrl.publicUrl,
+                        featured: formData.featured === 'true',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+
+                    // Ajouter l'application à la base de données
+                    const { error } = await supabaseClient
+                        .from('apps')
+                        .insert([newApp]);
+
+                    if (error) throw error;
+
+                    showMessage('Application ajoutée avec succès !', 'success');
+
+                    // Rediriger vers le tableau de bord après un court délai
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                } catch (error) {
+                    console.error("Erreur lors de l'ajout de l'application:", error);
+                    showMessage('Erreur lors de l\'ajout de l\'application: ' + error.message, 'error');
+
+                    // Réactiver le bouton de soumission
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Ajouter l\'application';
+                    }
+                }
+            });
+        }
+    }
+</script>
 </body>
 
 </html>

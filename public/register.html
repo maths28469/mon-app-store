@@ -276,6 +276,122 @@
             }, 3000);
         }
     </script>
+    // A ajouter dans register.html avant la fermeture
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Vérifier si l'utilisateur est déjà connecté
+        await checkAuthStatus();
+
+        if (currentUser) {
+            // L'utilisateur est déjà connecté, rediriger vers la page d'accueil
+            showMessage('Vous êtes déjà connecté. Redirection...', 'info');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+            return;
+        }
+
+        // Configurer le formulaire d'inscription
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                // Vérifier si les mots de passe correspondent
+                if (password !== confirmPassword) {
+                    showMessage('Les mots de passe ne correspondent pas.', 'error');
+                    return;
+                }
+
+                // Vérifier la longueur du mot de passe
+                if (password.length < 6) {
+                    showMessage('Le mot de passe doit comporter au moins 6 caractères.', 'error');
+                    return;
+                }
+
+                // Désactiver le bouton de soumission
+                const submitBtn = registerForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inscription...';
+                }
+
+                try {
+                    // Vérifier si c'est le premier utilisateur (pour en faire un admin)
+                    const { count, error: countError } = await supabaseClient
+                        .from('users')
+                        .select('*', { count: 'exact', head: true });
+
+                    if (countError) {
+                        console.error("Erreur lors du comptage des utilisateurs:", countError);
+                    }
+
+                    const isFirstUser = count === 0 || count === null;
+
+                    // Créer l'utilisateur dans Supabase Auth
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) throw error;
+
+                    // Ajouter l'utilisateur à la table users personnalisée
+                    const { error: userError } = await supabaseClient
+                        .from('users')
+                        .insert([
+                            {
+                                id: data.user.id,
+                                name: name,
+                                email: email,
+                                is_admin: isFirstUser, // Seul le premier utilisateur est admin
+                                created_at: new Date().toISOString()
+                            }
+                        ]);
+
+                    if (userError) throw userError;
+
+                    showMessage('Compte créé avec succès ! Vous pouvez maintenant vous connecter.', 'success');
+
+                    // Si c'est le premier utilisateur (et donc admin), afficher un message spécial
+                    if (isFirstUser) {
+                        showMessage('Vous êtes le premier utilisateur, vous avez été désigné comme administrateur !', 'success');
+                    }
+
+                    // Rediriger vers la page de connexion
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } catch (error) {
+                    console.error("Erreur lors de l'inscription:", error);
+
+                    let errorMessage = 'Erreur lors de l\'inscription.';
+                    if (error.message) {
+                        if (error.message.includes('already registered')) {
+                            errorMessage = 'Cet email est déjà utilisé.';
+                        } else {
+                            errorMessage = error.message;
+                        }
+                    }
+
+                    showMessage(errorMessage, 'error');
+
+                    // Réactiver le bouton
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = "S'inscrire";
+                    }
+                }
+            });
+        }
+    });
+</script>
 </body>
 
 </html>

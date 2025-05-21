@@ -9,7 +9,7 @@
     <link href="../css/main.css" rel="stylesheet">
     <link href="../css/admin.css" rel="stylesheet">
     <!-- Bibliothèque Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -28,63 +28,11 @@
     </header>
 
     <main>
-        <div class="container">
-            <div class="admin-header">
-                <h2>Tableau de bord</h2>
-                <a href="add-app.html" class="btn primary"><i class="fas fa-plus"></i> Ajouter une application</a>
+        <div class="container" id="admin-container">
+            <!-- Le contenu sera chargé dynamiquement -->
+            <div class="loading-indicator">
+                <i class="fas fa-spinner fa-spin"></i> Vérification des droits d'administration...
             </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <div class="stat-data">
-                        <span id="total-apps">0</span>
-                        <span>Applications</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <div class="stat-data">
-                        <span id="total-downloads">0</span>
-                        <span>Téléchargements</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-data">
-                        <span id="total-users">0</span>
-                        <span>Utilisateurs</span>
-                    </div>
-                </div>
-            </div>
-
-            <section class="admin-section">
-                <h3>Gestion des applications</h3>
-                <div class="admin-table-container">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Icon</th>
-                                <th>Nom</th>
-                                <th>Catégorie</th>
-                                <th>Version</th>
-                                <th>Téléchargements</th>
-                                <th>Note</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="apps-table-body">
-                            <!-- Les applications seront insérées ici par JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
         </div>
     </main>
 
@@ -94,11 +42,292 @@
         </div>
     </footer>
 
-    <!-- Inclusion des scripts dans le bon ordre -->
     <script src="../js/supabase-config.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="../js/apps.js"></script>
-    <script src="../js/admin.js"></script>
+    <script src="../js/auth-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Vérifier l'authentification
+            await checkAuthStatus();
+
+            // Vérifier si l'utilisateur est administrateur
+            const adminContainer = document.getElementById('admin-container');
+
+            if (!currentUser) {
+                // L'utilisateur n'est pas connecté
+                adminContainer.innerHTML = `
+                    <div class="error-container">
+                        <i class="fas fa-lock"></i>
+                        <h2>Accès non autorisé</h2>
+                        <p>Vous devez être connecté pour accéder à cette page.</p>
+                        <a href="../login.html" class="btn primary">Se connecter</a>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!isUserAdmin) {
+                // L'utilisateur n'est pas administrateur
+                adminContainer.innerHTML = `
+                    <div class="error-container">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h2>Accès refusé</h2>
+                        <p>Vous n'avez pas les droits d'administration nécessaires pour accéder à cette page.</p>
+                        <a href="../index.html" class="btn primary">Retour à l'accueil</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // Utilisateur administrateur - afficher l'interface d'administration
+            const adminName = document.getElementById('admin-name');
+            if (adminName) {
+                adminName.textContent = currentUser.name;
+            }
+
+            // Charger l'interface d'administration
+            adminContainer.innerHTML = `
+                <div class="admin-header">
+                    <h2>Tableau de bord</h2>
+                    <a href="add-app.html" class="btn primary"><i class="fas fa-plus"></i> Ajouter une application</a>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="stat-data">
+                            <span id="total-apps">0</span>
+                            <span>Applications</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <div class="stat-data">
+                            <span id="total-downloads">0</span>
+                            <span>Téléchargements</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-data">
+                            <span id="total-users">0</span>
+                            <span>Utilisateurs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="admin-section">
+                    <h3>Gestion des applications</h3>
+                    <div class="admin-table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Icon</th>
+                                    <th>Nom</th>
+                                    <th>Catégorie</th>
+                                    <th>Version</th>
+                                    <th>Téléchargements</th>
+                                    <th>Note</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="apps-table-body">
+                                <tr>
+                                    <td colspan="7" class="loading-cell">
+                                        <i class="fas fa-spinner fa-spin"></i> Chargement des applications...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `;
+
+            // Charger les statistiques et les données
+            updateStats();
+            loadAppsTable();
+        });
+
+        // Mettre à jour les statistiques
+        async function updateStats() {
+            const totalApps = document.getElementById('total-apps');
+            const totalDownloads = document.getElementById('total-downloads');
+            const totalUsers = document.getElementById('total-users');
+
+            try {
+                // Récupérer le nombre total d'applications
+                const { data: apps, error: appsError } = await supabaseClient
+                    .from('apps')
+                    .select('downloads');
+
+                if (appsError) throw appsError;
+
+                // Calculer le nombre total de téléchargements
+                const totalDownloadsCount = apps ? apps.reduce((sum, app) => sum + (app.downloads || 0), 0) : 0;
+
+                // Récupérer le nombre total d'utilisateurs
+                const { count, error: usersError } = await supabaseClient
+                    .from('users')
+                    .select('*', { count: 'exact', head: true });
+
+                if (usersError) throw usersError;
+
+                // Mettre à jour les statistiques
+                if (totalApps) totalApps.textContent = apps ? apps.length : 0;
+
+                if (totalDownloads) {
+                    let formattedDownloads = totalDownloadsCount.toString();
+                    if (totalDownloadsCount >= 1000000) {
+                        formattedDownloads = (totalDownloadsCount / 1000000).toFixed(1) + ' M';
+                    } else if (totalDownloadsCount >= 1000) {
+                        formattedDownloads = (totalDownloadsCount / 1000).toFixed(1) + ' k';
+                    }
+                    totalDownloads.textContent = formattedDownloads;
+                }
+
+                if (totalUsers) totalUsers.textContent = count || 0;
+            } catch (error) {
+                console.error("Erreur lors de la récupération des statistiques:", error);
+                showMessage('Erreur lors de la récupération des statistiques.', 'error');
+            }
+        }
+
+        // Charger la liste des applications
+        async function loadAppsTable() {
+            const appsTableBody = document.getElementById('apps-table-body');
+
+            if (!appsTableBody) return;
+
+            try {
+                // Charger les applications depuis Supabase
+                const { data: apps, error } = await supabaseClient
+                    .from('apps')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Vider le tableau
+                appsTableBody.innerHTML = '';
+
+                // Vérifier si des applications ont été trouvées
+                if (!apps || apps.length === 0) {
+                    appsTableBody.innerHTML = `<tr><td colspan="7" class="empty-cell">Aucune application disponible. <a href="add-app.html" class="btn primary">Ajouter une application</a></td></tr>`;
+                    return;
+                }
+
+                // Remplir le tableau avec les applications
+                apps.forEach(app => {
+                    const row = document.createElement('tr');
+
+                    // Générer les étoiles pour l'affichage de la note
+                    const starsHTML = generateStars(app.rating || 0);
+
+                    // Formater le nombre de téléchargements
+                    let formattedDownloads = (app.downloads || 0).toString();
+                    if (app.downloads >= 1000000) {
+                        formattedDownloads = (app.downloads / 1000000).toFixed(1) + ' M';
+                    } else if (app.downloads >= 1000) {
+                        formattedDownloads = (app.downloads / 1000).toFixed(1) + ' k';
+                    }
+
+                    row.innerHTML = `
+                        <td><img src="${app.icon}" alt="${app.name} icon" class="app-icon-small"></td>
+                        <td>${app.name}</td>
+                        <td>${app.category}</td>
+                        <td>${app.version}</td>
+                        <td>${formattedDownloads}</td>
+                        <td>
+                            <div class="app-rating">
+                                <div class="stars">${starsHTML}</div>
+                                <div class="rating-value">${(app.rating || 0).toFixed(1)}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="app-actions">
+                                <a href="edit-app.html?id=${app.id}" class="btn-edit" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn-delete" title="Supprimer" data-id="${app.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+
+                    // Ajouter un événement pour le bouton de suppression
+                    const deleteBtn = row.querySelector('.btn-delete');
+                    deleteBtn.addEventListener('click', async () => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer l'application "${app.name}" ?`)) {
+                            await handleDeleteApp(app.id);
+                        }
+                    });
+
+                    appsTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Erreur lors du chargement des applications:", error);
+                appsTableBody.innerHTML = `<tr><td colspan="7" class="error-cell">Erreur lors du chargement des applications. <button class="btn primary" onclick="loadAppsTable()">Réessayer</button></td></tr>`;
+                showMessage('Erreur lors du chargement des applications.', 'error');
+            }
+        }
+
+        // Gérer la suppression d'une application
+        async function handleDeleteApp(appId) {
+            try {
+                // Supprimer l'application de la base de données
+                const { error } = await supabaseClient
+                    .from('apps')
+                    .delete()
+                    .eq('id', appId);
+
+                if (error) throw error;
+
+                showMessage('Application supprimée avec succès.', 'success');
+
+                // Recharger le tableau et les statistiques
+                await loadAppsTable();
+                await updateStats();
+
+                return true;
+            } catch (error) {
+                console.error("Erreur lors de la suppression de l'application:", error);
+                showMessage('Erreur lors de la suppression de l\'application.', 'error');
+                return false;
+            }
+        }
+
+        // Générer les étoiles pour l'affichage de la note
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+            let stars = '';
+
+            // Étoiles pleines
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+
+            // Demi-étoile si nécessaire
+            if (halfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+
+            // Étoiles vides
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+
+            return stars;
+        }
+    </script>
 </body>
 
 </html>

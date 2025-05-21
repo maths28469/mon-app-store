@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catégories - Mon App Store</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <!-- Bibliothèque Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <!-- Header: différent selon l'état de connexion -->
+    <header id="main-header">
+        <div class="container">
+            <div class="logo">
+                <a href="index.html">
+                    <img src="assets/logo.png" alt="Mon App Store" class="logo-img">
+                    <h1>Mon App Store</h1>
+                </a>
+            </div>
+
+            <!-- Navigation: sera remplacée dynamiquement selon l'état de connexion -->
+            <nav id="main-nav">
+                <!-- Loader pendant la vérification de l'authentification -->
+                <div class="nav-loader">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Bannière principale -->
+    <section class="hero">
+        <div class="container">
+            <h2>Toutes les catégories</h2>
+            <p>Explorez notre collection par catégorie</p>
+
+            <!-- Barre de recherche -->
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Rechercher une application...">
+                <button id="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contenu principal -->
+    <main>
+        <div class="container">
+            <!-- Catégories -->
+            <section class="categories-list">
+                <div class="section-header">
+                    <h3>Catégories</h3>
+                </div>
+                <div class="categories-grid" id="categories-grid">
+                    <!-- Contenu chargé par JavaScript -->
+                    <div class="loading-indicator">
+                        <i class="fas fa-spinner fa-spin"></i> Chargement des catégories...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Applications de la catégorie sélectionnée -->
+            <section class="category-apps" id="category-apps-section" style="display: none;">
+                <div class="section-header">
+                    <h3 id="selected-category-title">Applications de la catégorie</h3>
+                </div>
+                <div class="app-grid" id="category-apps-container">
+                    <!-- Contenu chargé par JavaScript -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="assets/logo.png" alt="Mon App Store" class="logo-img-small">
+                    <h3>Mon App Store</h3>
+                </div>
+                <div class="footer-links">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="index.html">Accueil</a></li>
+                        <li><a href="categories.html">Catégories</a></li>
+                        <li><a href="#" id="footer-login-link">Connexion</a></li>
+                        <li><a href="register.html" id="footer-register-link">Inscription</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>Contact</h4>
+                    <p><i class="fas fa-envelope"></i> contact@monappstore.com</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Mon App Store. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Connexion</h2>
+                <span class="close" id="close-login-modal">&times;</span>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Mot de passe</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn primary full-width">Se connecter</button>
+            </form>
+            <div class="modal-footer">
+                <p>Pas encore de compte? <a href="register.html" id="register-link">S'inscrire</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Vérifier l'authentification
+            await checkAuthStatus();
+
+            // Charger les catégories
+            await loadCategories();
+
+            // Vérifier si une catégorie est sélectionnée dans l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryId = urlParams.get('category');
+
+            if (categoryId) {
+                await loadCategoryApps(categoryId);
+            }
+
+            // Configurer la recherche
+            setupSearch();
+        });
+
+        // Charger toutes les catégories
+        async function loadCategories() {
+            const categoriesGrid = document.getElementById('categories-grid');
+
+            if (!categoriesGrid) return;
+
+            try {
+                // Récupérer les catégories depuis Supabase
+                const { data: categories, error } = await supabaseClient
+                    .from('categories')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                // Vider le conteneur
+                categoriesGrid.innerHTML = '';
+
+                if (!categories || categories.length === 0) {
+                    categoriesGrid.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>Aucune catégorie disponible pour le moment.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Afficher les catégories
+                categories.forEach(category => {
+                    const categoryCard = createCategoryCard(category);
+                    categoriesGrid.appendChild(categoryCard);
+                });
+            } catch (error) {
+                console.error("Erreur lors du chargement des catégories:", error);
+                categoriesGrid.innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Impossible de charger les catégories.</p>
+                        <button class="btn secondary" onclick="loadCategories()">Réessayer</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Charger les applications d'une catégorie
+        async function loadCategoryApps(categoryId) {
+            const categorySection = document.getElementById('category-apps-section');
+            const categoryContainer = document.getElementById('category-apps-container');
+            const categoryTitle = document.getElementById('selected-category-title');
+
+            if (!categorySection || !categoryContainer || !categoryTitle) return;
+
+            // Afficher la section
+            categorySection.style.display = 'block';
+
+            // Afficher un indicateur de chargement
+            categoryContainer.innerHTML = `
+                <div class="loading-indicator">
+                    <i class="fas fa-spinner fa-spin"></i> Chargement des applications...
+                </div>
+            `;
+
+            try {
+                // Récupérer la catégorie
+                const { data: category, error: categoryError } = await supabaseClient
+                    .from('categories')
+                    .select('name')
+                    .eq('id', categoryId)
+                    .single();
+
+                if (categoryError) throw categoryError;
+
+                // Mettre à jour le titre
+                if (category) {
+                    categoryTitle.textContent = `Applications de la catégorie ${category.name}`;
+                }
+
+                // Récupérer les applications de la catégorie
+                const { data: apps, error: appsError } = await supabaseClient
+                    .from('apps')
+                    .select('*')
+                    .eq('category', category.name)
+                    .order('created_at', { ascending: false });
+
+                if (appsError) throw appsError;
+
+                // Vider le conteneur
+                categoryContainer.innerHTML = '';
+
+                if (!apps || apps.length === 0) {
+                    categoryContainer.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Aucune application dans cette catégorie pour le moment.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Afficher les applications
+                apps.forEach(app => {
+                    const appCard = createAppCard(app);
+                    categoryContainer.appendChild(appCard);
+                });
+            } catch (error) {
+                console.error("Erreur lors du chargement des applications:", error);
+                categoryContainer.innerHTML = `
+                    <div class="error-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Impossible de charger les applications.</p>
+                        <button class="btn secondary" onclick="loadCategoryApps('${categoryId}')">Réessayer</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Créer une carte de catégorie
+        function createCategoryCard(category) {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+
+            card.innerHTML = `
+                <a href="categories.html?category=${category.id}">
+                    <div class="category-icon">
+                        <i class="${category.icon || 'fas fa-folder'}"></i>
+                    </div>
+                    <h4 class="category-name">${category.name}</h4>
+                </a>
+            `;
+
+            return card;
+        }
+
+        // Créer une carte d'application
+        function createAppCard(app) {
+            const card = document.createElement('div');
+            card.className = 'app-card';
+
+            // Générer les étoiles pour l'affichage de la note
+            const starsHTML = generateStars(app.rating || 0);
+
+            card.innerHTML = `
+                <div class="app-card-banner">
+                    <img src="${app.banner}" alt="${app.name}" loading="lazy">
+                </div>
+                <div class="app-card-content">
+                    <div class="app-card-icon">
+                        <img src="${app.icon}" alt="${app.name} icon" loading="lazy">
+                    </div>
+                    <h4 class="app-card-title">${app.name}</h4>
+                    <div class="app-card-developer">${app.developer}</div>
+                    <div class="app-card-description">${app.short_description}</div>
+                    <div class="app-card-meta">
+                        <div class="app-card-rating">
+                            <div class="stars">${starsHTML}</div>
+                            <div class="rating-value">${(app.rating || 0).toFixed(1)}</div>
+                        </div>
+                        <a href="app-details.html?id=${app.id}" class="btn secondary">Voir</a>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Générer les étoiles pour l'affichage de la note
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+            let stars = '';
+
+            // Étoiles pleines
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+
+            // Demi-étoile si nécessaire
+            if (halfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+
+            // Étoiles vides
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+
+            return stars;
+        }
+
+        // Configurer la recherche
+        function setupSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+
+            if (searchInput && searchBtn) {
+                // Rechercher en cliquant sur le bouton
+                searchBtn.addEventListener('click', () => {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
+                });
+
+                // Rechercher en appuyant sur Entrée
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = searchInput.value.trim();
+                        if (query) {
+                            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

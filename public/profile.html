@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Profil - Mon App Store</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <!-- Bibliothèque Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>Mon App Store</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Accueil</a></li>
+                    <li><a href="#" id="user-menu">Chargement...</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="profile-header">
+                <h2>Mon Profil</h2>
+            </div>
+
+            <div class="profile-content">
+                <!-- Affichage d'un loader pendant le chargement -->
+                <div id="profile-loader" class="loading-indicator">
+                    <i class="fas fa-spinner fa-spin"></i> Chargement de votre profil...
+                </div>
+
+                <!-- Contenu du profil (masqué au chargement) -->
+                <div id="profile-container" style="display: none;">
+                    <div class="profile-section">
+                        <h3>Informations personnelles</h3>
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="user-name">Nom complet</label>
+                                <input type="text" id="user-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="user-email">Email</label>
+                                <input type="email" id="user-email" disabled>
+                                <small>L'email ne peut pas être modifié</small>
+                            </div>
+                            <button type="submit" class="btn primary">Mettre à jour le profil</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Changer le mot de passe</h3>
+                        <form id="password-form">
+                            <div class="form-group">
+                                <label for="current-password">Mot de passe actuel</label>
+                                <input type="password" id="current-password" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">Nouveau mot de passe</label>
+                                <input type="password" id="new-password" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-new-password">Confirmer le nouveau mot de passe</label>
+                                <input type="password" id="confirm-new-password" required minlength="6">
+                            </div>
+                            <button type="submit" class="btn primary">Changer le mot de passe</button>
+                        </form>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>Mes téléchargements récents</h3>
+                        <div id="downloads-container">
+                            <p>Chargement de vos téléchargements...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Mon App Store. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://dbksdxqzbbsklzfntfiq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRia3NkeHF6YmJza2x6Zm50ZmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2NzAzOTYsImV4cCI6MjA2MzI0NjM5Nn0.Cv-FBgmwCuzAqd6vThGoancA85C1X8o_GP59oPuxbZg';
+
+        // Vérifier que la bibliothèque Supabase est bien chargée
+        if (typeof supabase !== 'undefined') {
+            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Client Supabase initialisé avec succès');
+        } else {
+            console.error('Erreur: La bibliothèque Supabase n\'est pas chargée correctement');
+        }
+    </script>
+
+    <script>
+        // Variables globales
+        let currentUser = null;
+        let isUserAdmin = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Vérifier si l'utilisateur est connecté
+            await checkAuthStatus();
+
+            // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
+            if (!currentUser) {
+                showMessage('Vous devez être connecté pour accéder à cette page.', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
+            // Afficher les informations du profil
+            displayUserProfile();
+
+            // Charger les téléchargements récents
+            loadRecentDownloads();
+
+            // Configurer le formulaire de mise à jour du profil
+            setupProfileForm();
+
+            // Configurer le formulaire de changement de mot de passe
+            setupPasswordForm();
+        });
+
+        // Vérifier si l'utilisateur est connecté
+        async function checkAuthStatus() {
+            try {
+                const { data, error } = await window.supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error("Erreur de session:", error);
+                    return false;
+                }
+
+                if (data?.session) {
+                    // Récupérer les données de l'utilisateur depuis la table users
+                    const { data: userData, error: userError } = await window.supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', data.session.user.id)
+                        .single();
+
+                    if (userError && userError.code !== 'PGRST116') {
+                        console.error("Erreur utilisateur:", userError);
+                    }
+
+                    // Stocker l'utilisateur actuel
+                    currentUser = {
+                        id: data.session.user.id,
+                        email: data.session.user.email,
+                        name: userData?.name || 'Utilisateur',
+                        isAdmin: userData?.is_admin || false
+                    };
+                    isUserAdmin = userData?.is_admin || false;
+
+                    // Mettre à jour l'interface utilisateur
+                    updateUserMenu();
+                    return true;
+                }
+            } catch (error) {
+                console.error("Erreur de vérification d'authentification:", error);
+            }
+
+            return false;
+        }
+
+        // Mettre à jour le menu utilisateur
+        function updateUserMenu() {
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu && currentUser) {
+                userMenu.textContent = currentUser.name;
+                userMenu.href = '#';
+
+                // Supprimer le menu déroulant s'il existe déjà
+                const existingDropdown = document.querySelector('.dropdown-menu');
+                if (existingDropdown) {
+                    existingDropdown.remove();
+                }
+
+                // Ajouter un menu déroulant pour le profil et la déconnexion
+                const dropdownMenu = document.createElement('div');
+                dropdownMenu.className = 'dropdown-menu';
+
+                let menuHTML = `
+          <ul>
+            <li><a href="profile.html" class="active">Mon Profil</a></li>
+            <li><a href="#" id="logout-link">Déconnexion</a></li>
+          </ul>
+        `;
+
+                // Ajouter le lien admin si l'utilisateur est admin
+                if (isUserAdmin) {
+                    menuHTML = `
+            <ul>
+              <li><a href="admin/index.html" id="admin-link">Administration</a></li>
+              <li><a href="profile.html" class="active">Mon Profil</a></li>
+              <li><a href="#" id="logout-link">Déconnexion</a></li>
+            </ul>
+          `;
+                }
+
+                dropdownMenu.innerHTML = menuHTML;
+
+                // Ajouter le menu après le bouton de connexion
+                userMenu.parentNode.appendChild(dropdownMenu);
+
+                // Ajouter les événements pour le menu
+                const logoutLink = document.getElementById('logout-link');
+                if (logoutLink) {
+                    logoutLink.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        await logout();
+                    });
+                }
+
+                // Afficher/cacher le menu au clic sur le nom d'utilisateur
+                userMenu.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    dropdownMenu.classList.toggle('show');
+                });
+            }
+        }
+
+        // Afficher les informations du profil
+        function displayUserProfile() {
+            const loader = document.getElementById('profile-loader');
+            const container = document.getElementById('profile-container');
+
+            if (loader && container && currentUser) {
+                // Remplir les champs du formulaire
+                document.getElementById('user-name').value = currentUser.name;
+                document.getElementById('user-email').value = currentUser.email;
+
+                // Masquer le loader et afficher le contenu
+                loader.style.display = 'none';
+                container.style.display = 'block';
+            }
+        }
+
+        // Charger les téléchargements récents
+        async function loadRecentDownloads() {
+            const downloadsContainer = document.getElementById('downloads-container');
+
+            if (!downloadsContainer || !currentUser) return;
+
+            try {
+                // Récupérer les téléchargements récents
+                const { data: downloads, error } = await window.supabaseClient
+                    .from('downloads')
+                    .select(`
+            id,
+            created_at,
+            apps (
+              id,
+              name,
+              icon,
+              version
+            )
+          `)
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+
+                if (!downloads || downloads.length === 0) {
+                    downloadsContainer.innerHTML = '<p>Vous n\'avez pas encore téléchargé d\'applications.</p>';
+                    return;
+                }
+
+                // Afficher les téléchargements
+                let html = '<div class="downloads-list">';
+
+                downloads.forEach(download => {
+                    const app = download.apps;
+                    const downloadDate = new Date(download.created_at).toLocaleDateString('fr-FR');
+
+                    html += `
+            <div class="download-item">
+              <img src="${app.icon}" alt="${app.name}" class="download-icon">
+              <div class="download-info">
+                <h4>${app.name}</h4>
+                <p>Version: ${app.version}</p>
+                <p>Téléchargé le: ${downloadDate}</p>
+              </div>
+              <a href="app-details.html?id=${app.id}" class="btn secondary">Voir</a>
+            </div>
+          `;
+                });
+
+                html += '</div>';
+                downloadsContainer.innerHTML = html;
+
+            } catch (error) {
+                console.error("Erreur lors du chargement des téléchargements:", error);
+                downloadsContainer.innerHTML = '<p>Impossible de charger vos téléchargements.</p>';
+            }
+        }
+
+        // Configurer le formulaire de mise à jour du profil
+        function setupProfileForm() {
+            const profileForm = document.getElementById('profile-form');
+
+            if (profileForm) {
+                profileForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const name = document.getElementById('user-name').value;
+
+                    if (!name) {
+                        showMessage('Veuillez entrer votre nom.', 'error');
+                        return;
+                    }
+
+                    // Désactiver le bouton pendant la mise à jour
+                    const submitBtn = profileForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
+                    }
+
+                    try {
+                        // Mettre à jour le profil dans la table users
+                        const { error } = await window.supabaseClient
+                            .from('users')
+                            .update({ name: name })
+                            .eq('id', currentUser.id);
+
+                        if (error) throw error;
+
+                        // Mettre à jour l'objet currentUser
+                        currentUser.name = name;
+
+                        // Mettre à jour le menu utilisateur
+                        updateUserMenu();
+
+                        showMessage('Profil mis à jour avec succès !', 'success');
+
+                    } catch (error) {
+                        console.error("Erreur lors de la mise à jour du profil:", error);
+                        showMessage('Erreur lors de la mise à jour du profil.', 'error');
+                    } finally {
+                        // Réactiver le bouton
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Mettre à jour le profil';
+                        }
+                    }
+                });
+            }
+        }
+
+        // Configurer le formulaire de changement de mot de passe
+        function setupPasswordForm() {
+            const passwordForm = document.getElementById('password-form');
+
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const currentPassword = document.getElementById('current-password').value;
+                    const newPassword = document.getElementById('new-password').value;
+                    const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+                    if (!currentPassword || !newPassword || !confirmNewPassword) {
+                        showMessage('Veuillez remplir tous les champs.', 'error');
+                        return;
+                    }
+
+                    if (newPassword !== confirmNewPassword) {
+                        showMessage('Les nouveaux mots de passe ne correspondent pas.', 'error');
+                        return;
+                    }
+
+                    if (newPassword.length < 6) {
+                        showMessage('Le nouveau mot de passe doit comporter au moins 6 caractères.', 'error');
+                        return;
+                    }
+
+                    // Désactiver le bouton pendant la mise à jour
+                    const submitBtn = passwordForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mise à jour...';
+                    }
+
+                    try {
+                        // Vérifier l'ancien mot de passe en tentant de se reconnecter
+                        const { error: signInError } = await window.supabaseClient.auth.signInWithPassword({
+                            email: currentUser.email,
+                            password: currentPassword
+                        });
+
+                        if (signInError) {
+                            throw new Error('Le mot de passe actuel est incorrect.');
+                        }
+
+                        // Mettre à jour le mot de passe
+                        const { error } = await window.supabaseClient.auth.updateUser({
+                            password: newPassword
+                        });
+
+                        if (error) throw error;
+
+                        showMessage('Mot de passe mis à jour avec succès !', 'success');
+
+                        // Réinitialiser le formulaire
+                        passwordForm.reset();
+
+                    } catch (error) {
+                        console.error("Erreur lors de la mise à jour du mot de passe:", error);
+                        showMessage(error.message || 'Erreur lors de la mise à jour du mot de passe.', 'error');
+                    } finally {
+                        // Réactiver le bouton
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Changer le mot de passe';
+                        }
+                    }
+                });
+            }
+        }
+
+        // Déconnexion de l'utilisateur
+        async function logout() {
+            try {
+                const { error } = await window.supabaseClient.auth.signOut();
+
+                if (error) throw error;
+
+                currentUser = null;
+                isUserAdmin = false;
+
+                showMessage('Vous avez été déconnecté.', 'info');
+
+                // Rediriger vers la page d'accueil
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+
+                return true;
+            } catch (error) {
+                console.error("Erreur de déconnexion:", error);
+                showMessage('Erreur lors de la déconnexion.', 'error');
+                return false;
+            }
+        }
+
+        // Afficher des messages à l'utilisateur
+        function showMessage(message, type = 'info') {
+            // Supprimer les messages existants
+            const existingMessages = document.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `message ${type}`;
+            messageContainer.textContent = message;
+
+            document.body.appendChild(messageContainer);
+
+            // Afficher le message pendant 3 secondes
+            setTimeout(() => {
+                messageContainer.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

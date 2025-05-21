@@ -7,8 +7,8 @@
     <title>Inscription - Mon App Store</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="css/main.css" rel="stylesheet">
-    <!-- Bibliothèque Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Bibliothèque Supabase - Utilisez la version CDN qui fonctionne correctement -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -20,7 +20,7 @@
             <nav>
                 <ul>
                     <li><a href="index.html">Accueil</a></li>
-                    <li><a href="#" id="login-btn">Connexion</a></li>
+                    <li><a href="login.html">Connexion</a></li>
                     <li><a href="register.html" class="register-btn active">Inscription</a></li>
                 </ul>
             </nav>
@@ -51,7 +51,7 @@
                     </div>
                     <button type="submit" class="btn primary">S'inscrire</button>
                 </form>
-                <p class="auth-redirect">Déjà un compte? <a href="#" id="login-link">Se connecter</a></p>
+                <p class="auth-redirect">Déjà un compte? <a href="login.html">Se connecter</a></p>
             </section>
         </div>
     </main>
@@ -62,29 +62,220 @@
         </div>
     </footer>
 
-    <!-- Login Modal -->
-    <div class="modal" id="login-modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Connexion</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-email">Email</label>
-                    <input type="email" id="login-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Mot de passe</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit" class="btn primary">Se connecter</button>
-            </form>
-            <p>Pas encore de compte? <a href="register.html">S'inscrire</a></p>
-        </div>
-    </div>
+    <!-- Assurez-vous de charger les scripts dans le bon ordre -->
+    <script>
+        // Configuration Supabase directement intégrée pour éviter les problèmes de chargement
+        const supabaseUrl = 'https://dbksdxqzbbsklzfntfiq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRia3NkeHF6YmJza2x6Zm50ZmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2NzAzOTYsImV4cCI6MjA2MzI0NjM5Nn0.Cv-FBgmwCuzAqd6vThGoancA85C1X8o_GP59oPuxbZg';
 
-    <!-- Inclusion des scripts dans le bon ordre -->
-    <script src="js/supabase-config.js"></script>
-    <script src="js/auth.js"></script>
+        // Vérifier que la bibliothèque Supabase est bien chargée
+        if (typeof supabase !== 'undefined') {
+            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Client Supabase initialisé avec succès');
+        } else {
+            console.error('Erreur: La bibliothèque Supabase n\'est pas chargée correctement');
+        }
+    </script>
+
+    <script>
+        // Code d'inscription intégré pour éviter les problèmes de dépendances
+        document.addEventListener('DOMContentLoaded', () => {
+            // Vérifier si l'utilisateur est déjà connecté
+            checkAuthStatus();
+
+            // Gestionnaire de soumission du formulaire d'inscription
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+                registerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const name = document.getElementById('name').value;
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirm-password').value;
+
+                    // Vérifier si les mots de passe correspondent
+                    if (password !== confirmPassword) {
+                        showMessage('Les mots de passe ne correspondent pas.', 'error');
+                        return;
+                    }
+
+                    // Désactiver le bouton pendant l'inscription
+                    const submitBtn = registerForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inscription...';
+                    }
+
+                    try {
+                        // Vérifier d'abord si l'email est déjà utilisé dans auth.users
+                        const { data: existingUser, error: existingUserError } = await window.supabaseClient.auth.signInWithOtp({
+                            email: email,
+                            shouldCreateUser: false
+                        });
+
+                        // Si cette commande ne renvoie pas d'erreur "User not found", cela signifie que l'utilisateur existe déjà
+                        if (!existingUserError && existingUser) {
+                            throw new Error('Cet email est déjà utilisé. Veuillez en choisir un autre.');
+                        }
+
+                        // Créer l'utilisateur dans Supabase Auth
+                        const { data: authData, error: authError } = await window.supabaseClient.auth.signUp({
+                            email,
+                            password,
+                            options: {
+                                data: { name: name }
+                            }
+                        });
+
+                        if (authError) throw authError;
+
+                        console.log("Utilisateur créé dans Auth:", authData);
+
+                        // Vérifier si c'est le premier utilisateur (pour les droits admin)
+                        let isFirstUser = false;
+                        try {
+                            const { count, error: countError } = await window.supabaseClient
+                                .from('users')
+                                .select('*', { count: 'exact', head: true });
+
+                            if (!countError) {
+                                isFirstUser = (count === 0 || count === null);
+                                console.log("Est premier utilisateur:", isFirstUser, "count:", count);
+                            }
+                        } catch (countError) {
+                            console.warn("Erreur lors du comptage des utilisateurs:", countError);
+                            // Ne pas bloquer l'inscription si cette étape échoue
+                        }
+
+                        try {
+                            // Ajouter l'utilisateur à la table users
+                            const { error: userError } = await window.supabaseClient
+                                .from('users')
+                                .insert([
+                                    {
+                                        id: authData.user.id,
+                                        name: name,
+                                        email: email,
+                                        is_admin: isFirstUser,
+                                        created_at: new Date().toISOString()
+                                    }
+                                ]);
+
+                            if (userError) {
+                                if (userError.code === '23505') { // Code PostgreSQL pour violation de contrainte d'unicité
+                                    console.warn("L'entrée utilisateur existe peut-être déjà dans la table users");
+                                } else {
+                                    console.error("Erreur d'insertion dans la table users:", userError);
+                                }
+                            } else {
+                                console.log("Utilisateur ajouté à la table users");
+                            }
+                        } catch (tableError) {
+                            console.warn("Erreur lors de l'ajout à la table users:", tableError);
+                            // Ne pas bloquer l'inscription si cette étape échoue
+                        }
+
+                        // Connecter automatiquement l'utilisateur
+                        const { data: signInData, error: signInError } = await window.supabaseClient.auth.signInWithPassword({
+                            email,
+                            password
+                        });
+
+                        if (signInError) {
+                            console.warn("Erreur lors de la connexion automatique:", signInError);
+                            showMessage('Compte créé avec succès ! Veuillez vous connecter.', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'login.html';
+                            }, 2000);
+                        } else {
+                            showMessage('Compte créé avec succès !', 'success');
+
+                            // Si c'est le premier utilisateur (admin), afficher un message spécial
+                            if (isFirstUser) {
+                                showMessage('Vous êtes le premier utilisateur, vous avez été désigné comme administrateur !', 'success');
+                            }
+
+                            // Rediriger vers la page d'accueil
+                            setTimeout(() => {
+                                window.location.href = 'index.html';
+                            }, 2000);
+                        }
+
+                    } catch (error) {
+                        console.error("Erreur d'inscription:", error);
+
+                        // Gestion des différents messages d'erreur
+                        let errorMessage = 'Erreur lors de l\'inscription';
+                        if (error.message) {
+                            if (error.message.includes('already registered') || error.message.includes('déjà utilisé')) {
+                                errorMessage = 'Cet email est déjà utilisé';
+                            } else if (error.message.includes('valid email')) {
+                                errorMessage = 'Veuillez entrer une adresse email valide';
+                            } else if (error.message.includes('password')) {
+                                errorMessage = 'Le mot de passe doit comporter au moins 6 caractères';
+                            } else if (error.code === '23505' || error.message.includes('duplicate key')) {
+                                errorMessage = 'Cet email est déjà utilisé';
+                            } else {
+                                errorMessage = 'Erreur: ' + error.message;
+                            }
+                        }
+
+                        showMessage(errorMessage, 'error');
+
+                        // Réactiver le bouton
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = "S'inscrire";
+                        }
+                    }
+                });
+            }
+        });
+
+        // Vérifier si l'utilisateur est déjà connecté
+        async function checkAuthStatus() {
+            try {
+                const { data, error } = await window.supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error("Erreur de session:", error);
+                    return false;
+                }
+
+                if (data?.session) {
+                    // L'utilisateur est déjà connecté, rediriger vers la page d'accueil
+                    showMessage('Vous êtes déjà connecté. Redirection...', 'info');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                    return true;
+                }
+            } catch (error) {
+                console.error("Erreur de vérification d'authentification:", error);
+            }
+
+            return false;
+        }
+
+        // Afficher des messages à l'utilisateur
+        function showMessage(message, type = 'info') {
+            // Supprimer les messages existants
+            const existingMessages = document.querySelectorAll('.message');
+            existingMessages.forEach(msg => msg.remove());
+
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `message ${type}`;
+            messageContainer.textContent = message;
+
+            document.body.appendChild(messageContainer);
+
+            // Afficher le message pendant 3 secondes
+            setTimeout(() => {
+                messageContainer.remove();
+            }, 3000);
+        }
+    </script>
 </body>
 
 </html>

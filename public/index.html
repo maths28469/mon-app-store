@@ -12,129 +12,196 @@
 </head>
 
 <body>
-    <header>
+    <!-- Header: différent selon l'état de connexion -->
+    <header id="main-header">
         <div class="container">
             <div class="logo">
-                <h1>Mon App Store</h1>
+                <a href="index.html">
+                    <img src="assets/logo.png" alt="Mon App Store" class="logo-img">
+                    <h1>Mon App Store</h1>
+                </a>
             </div>
-            <nav>
-                <ul>
-                    <li><a href="index.html" class="active">Accueil</a></li>
-                    <li><a href="login.html" id="login-btn">Connexion</a></li>
-                    <li><a href="register.html" class="register-btn">Inscription</a></li>
-                </ul>
+
+            <!-- Navigation: sera remplacée dynamiquement selon l'état de connexion -->
+            <nav id="main-nav">
+                <!-- Loader pendant la vérification de l'authentification -->
+                <div class="nav-loader">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
             </nav>
         </div>
     </header>
 
+    <!-- Bannière principale -->
     <section class="hero">
         <div class="container">
             <h2>Découvrez mes applications</h2>
             <p>Une collection d'applications créées avec passion</p>
+
+            <!-- Barre de recherche -->
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Rechercher une application...">
+                <button id="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
         </div>
     </section>
 
+    <!-- Contenu principal -->
     <main>
         <div class="container">
+            <!-- Applications vedettes -->
             <section class="featured-apps">
-                <h3>Applications vedettes</h3>
+                <div class="section-header">
+                    <h3>Applications vedettes</h3>
+                    <a href="categories.html" class="view-all">Voir tout <i class="fas fa-chevron-right"></i></a>
+                </div>
                 <div class="app-grid" id="featured-apps-container">
-                    <!-- Les applications vedettes seront insérées ici par JavaScript -->
+                    <!-- Loader pour les applications -->
                     <div class="loading-indicator">
                         <i class="fas fa-spinner fa-spin"></i> Chargement des applications...
                     </div>
                 </div>
             </section>
 
-            <section class="all-apps">
-                <h3>Toutes les applications</h3>
-                <div class="app-grid" id="all-apps-container">
-                    <!-- Toutes les applications seront insérées ici par JavaScript -->
+            <!-- Applications récentes -->
+            <section class="recent-apps">
+                <div class="section-header">
+                    <h3>Ajouts récents</h3>
+                    <a href="categories.html" class="view-all">Voir tout <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="app-grid" id="recent-apps-container">
+                    <!-- Contenu chargé par JavaScript -->
+                </div>
+            </section>
+
+            <!-- Catégories populaires -->
+            <section class="categories">
+                <div class="section-header">
+                    <h3>Catégories</h3>
+                    <a href="categories.html" class="view-all">Voir tout <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="categories-grid" id="categories-container">
+                    <!-- Contenu chargé par JavaScript -->
                 </div>
             </section>
         </div>
     </main>
 
+    <!-- Footer -->
     <footer>
         <div class="container">
-            <p>&copy; 2025 Mon App Store. Tous droits réservés.</p>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="assets/logo.png" alt="Mon App Store" class="logo-img-small">
+                    <h3>Mon App Store</h3>
+                </div>
+                <div class="footer-links">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="index.html">Accueil</a></li>
+                        <li><a href="categories.html">Catégories</a></li>
+                        <li><a href="#" id="footer-login-link">Connexion</a></li>
+                        <li><a href="register.html" id="footer-register-link">Inscription</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>Contact</h4>
+                    <p><i class="fas fa-envelope"></i> contact@monappstore.com</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-github"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Mon App Store. Tous droits réservés.</p>
+            </div>
         </div>
     </footer>
 
+    <!-- Modals -->
     <!-- Login Modal -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Connexion</h2>
+            <div class="modal-header">
+                <h2>Connexion</h2>
+                <span class="close" id="close-login-modal">&times;</span>
+            </div>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" required>
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Mot de passe</label>
-                    <input type="password" id="password" required>
+                    <label for="login-password">Mot de passe</label>
+                    <input type="password" id="login-password" required>
                 </div>
-                <button type="submit" class="btn primary">Se connecter</button>
+                <button type="submit" class="btn primary full-width">Se connecter</button>
             </form>
-            <p>Pas encore de compte? <a href="register.html">S'inscrire</a></p>
+            <div class="modal-footer">
+                <p>Pas encore de compte? <a href="register.html" id="register-link">S'inscrire</a></p>
+            </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script>
         // Configuration Supabase
         const supabaseUrl = 'https://dbksdxqzbbsklzfntfiq.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRia3NkeHF6YmJza2x6Zm50ZmlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2NzAzOTYsImV4cCI6MjA2MzI0NjM5Nn0.Cv-FBgmwCuzAqd6vThGoancA85C1X8o_GP59oPuxbZg';
 
-        // Vérifier que la bibliothèque Supabase est bien chargée
-        if (typeof supabase !== 'undefined') {
-            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-            console.log('Client Supabase initialisé avec succès');
-        } else {
-            console.error('Erreur: La bibliothèque Supabase n\'est pas chargée correctement');
-        }
-    </script>
+        // Initialiser Supabase
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    <script>
         // Variables globales
         let currentUser = null;
         let isUserAdmin = false;
         let appsData = [];
+        let categoriesData = [];
 
+        // Exécuter au chargement de la page
         document.addEventListener('DOMContentLoaded', async () => {
-            // Vérifier si l'utilisateur est connecté
+            // Vérifier l'état d'authentification
             await checkAuthStatus();
 
-            // Gérer le modal de connexion
-            setupLoginModal();
+            // Charger les données
+            loadFeaturedApps();
+            loadRecentApps();
+            loadCategories();
 
-            // Charger les applications
-            await loadApps();
+            // Configurer les événements
+            setupEventListeners();
         });
 
-        // Vérifier si l'utilisateur est déjà connecté
+        // Vérifier l'état d'authentification
         async function checkAuthStatus() {
             try {
-                const { data, error } = await window.supabaseClient.auth.getSession();
+                // Récupérer la session
+                const { data, error } = await supabase.auth.getSession();
 
                 if (error) {
-                    console.error("Erreur de session:", error);
+                    console.error("Erreur lors de la récupération de la session:", error);
+                    updateNavigation(false);
                     return false;
                 }
 
                 if (data?.session) {
                     // Récupérer les données utilisateur
-                    const { data: userData, error: userError } = await window.supabaseClient
+                    const { data: userData, error: userError } = await supabase
                         .from('users')
                         .select('*')
                         .eq('id', data.session.user.id)
                         .single();
 
                     if (userError && userError.code !== 'PGRST116') {
-                        console.error("Erreur utilisateur:", userError);
+                        console.error("Erreur lors de la récupération des données utilisateur:", userError);
                     }
 
-                    // Stocker l'utilisateur actuel
+                    // Définir l'utilisateur actuel
                     currentUser = {
                         id: data.session.user.id,
                         email: data.session.user.email,
@@ -143,311 +210,319 @@
                     };
                     isUserAdmin = userData?.is_admin || false;
 
-                    // Mettre à jour l'interface utilisateur
-                    updateAuthUI();
+                    // Mettre à jour la navigation
+                    updateNavigation(true);
                     return true;
+                } else {
+                    // Pas de session active
+                    updateNavigation(false);
+                    return false;
                 }
             } catch (error) {
-                console.error("Erreur de vérification d'authentification:", error);
+                console.error("Erreur lors de la vérification de l'authentification:", error);
+                updateNavigation(false);
+                return false;
             }
-
-            return false;
         }
 
-        // Mettre à jour l'interface selon l'état de connexion
-        function updateAuthUI() {
-            const loginBtn = document.getElementById('login-btn');
-            const registerBtn = document.querySelector('.register-btn');
+        // Mettre à jour la navigation selon l'état d'authentification
+        function updateNavigation(isLoggedIn) {
+            const mainNav = document.getElementById('main-nav');
+            const footerLoginLink = document.getElementById('footer-login-link');
+            const footerRegisterLink = document.getElementById('footer-register-link');
 
-            if (currentUser) {
-                // L'utilisateur est connecté
-                if (loginBtn) {
-                    loginBtn.textContent = currentUser.name;
-                    loginBtn.href = 'profile.html';
+            if (isLoggedIn && currentUser) {
+                // Navigation pour utilisateur connecté
+                mainNav.innerHTML = `
+          <ul>
+            <li><a href="index.html" class="active">Accueil</a></li>
+            <li><a href="categories.html">Catégories</a></li>
+            <li class="user-menu">
+              <a href="#" id="user-menu-trigger">
+                <i class="fas fa-user-circle"></i>
+                ${currentUser.name}
+                <i class="fas fa-chevron-down"></i>
+              </a>
+              <div class="dropdown-menu">
+                <ul>
+                  <li><a href="profile.html"><i class="fas fa-user"></i> Mon profil</a></li>
+                  <li><a href="my-downloads.html"><i class="fas fa-download"></i> Mes téléchargements</a></li>
+                  ${isUserAdmin ? `<li><a href="admin/dashboard.html"><i class="fas fa-cog"></i> Administration</a></li>` : ''}
+                  <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+        `;
 
-                    // Supprimer le menu déroulant s'il existe déjà
-                    const existingDropdown = document.querySelector('.dropdown-menu');
-                    if (existingDropdown) {
-                        existingDropdown.remove();
-                    }
+                // Ajouter l'événement pour afficher/masquer le menu déroulant
+                const userMenuTrigger = document.getElementById('user-menu-trigger');
+                userMenuTrigger.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    this.parentNode.classList.toggle('active');
+                });
 
-                    // Ajouter un menu déroulant pour le profil et la déconnexion
-                    const dropdownMenu = document.createElement('div');
-                    dropdownMenu.className = 'dropdown-menu';
+                // Ajouter l'événement de déconnexion
+                const logoutBtn = document.getElementById('logout-btn');
+                logoutBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    logout();
+                });
 
-                    let menuHTML = `
-            <ul>
-              <li><a href="profile.html" id="profile-link">Mon Profil</a></li>
-              <li><a href="#" id="logout-link">Déconnexion</a></li>
-            </ul>
-          `;
-
-                    // Ajouter le lien admin si l'utilisateur est admin
-                    if (isUserAdmin) {
-                        menuHTML = `
-              <ul>
-                <li><a href="admin/index.html" id="admin-link">Administration</a></li>
-                <li><a href="profile.html" id="profile-link">Mon Profil</a></li>
-                <li><a href="#" id="logout-link">Déconnexion</a></li>
-              </ul>
-            `;
-                    }
-
-                    dropdownMenu.innerHTML = menuHTML;
-
-                    // Ajouter le menu après le bouton de connexion
-                    loginBtn.parentNode.appendChild(dropdownMenu);
-
-                    // Ajouter les événements pour le menu
-                    const logoutLink = document.getElementById('logout-link');
-                    if (logoutLink) {
-                        logoutLink.addEventListener('click', async (e) => {
-                            e.preventDefault();
-                            await logout();
-                        });
-                    }
-
-                    // Afficher/cacher le menu au clic sur le nom d'utilisateur
-                    loginBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        dropdownMenu.classList.toggle('show');
-                        return false;
-                    });
-                }
-
-                // Cacher le bouton d'inscription si l'utilisateur est connecté
-                if (registerBtn) {
-                    registerBtn.style.display = 'none';
-                }
+                // Mettre à jour les liens du footer
+                if (footerLoginLink) footerLoginLink.style.display = 'none';
+                if (footerRegisterLink) footerRegisterLink.style.display = 'none';
             } else {
-                // L'utilisateur n'est pas connecté
-                if (loginBtn) {
-                    loginBtn.textContent = 'Connexion';
-                    loginBtn.href = 'login.html';
+                // Navigation pour visiteur non connecté
+                mainNav.innerHTML = `
+          <ul>
+            <li><a href="index.html" class="active">Accueil</a></li>
+            <li><a href="categories.html">Catégories</a></li>
+            <li><a href="#" id="nav-login-btn">Connexion</a></li>
+            <li><a href="register.html" class="btn primary">Inscription</a></li>
+          </ul>
+        `;
 
-                    // Supprimer le menu déroulant s'il existe
-                    const dropdownMenu = document.querySelector('.dropdown-menu');
-                    if (dropdownMenu) {
-                        dropdownMenu.remove();
-                    }
-                }
+                // Ajouter l'événement pour afficher le modal de connexion
+                const navLoginBtn = document.getElementById('nav-login-btn');
+                navLoginBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.getElementById('login-modal').classList.add('show');
+                });
 
-                // Afficher le bouton d'inscription si l'utilisateur n'est pas connecté
-                if (registerBtn) {
-                    registerBtn.style.display = 'block';
-                }
+                // Mettre à jour les liens du footer
+                if (footerLoginLink) footerLoginLink.style.display = 'inline';
+                if (footerRegisterLink) footerRegisterLink.style.display = 'inline';
             }
         }
 
-        // Configurer le modal de connexion
-        function setupLoginModal() {
-            const loginBtn = document.getElementById('login-btn');
+        // Configurer les écouteurs d'événements
+        function setupEventListeners() {
+            // Modal de connexion
             const loginModal = document.getElementById('login-modal');
-            const closeBtn = document.querySelector('.close');
-
-            // Ne pas afficher le modal si l'utilisateur est connecté
-            if (currentUser) return;
+            const closeLoginModal = document.getElementById('close-login-modal');
+            const footerLoginLink = document.getElementById('footer-login-link');
 
             // Ouvrir le modal de connexion
-            if (loginBtn) {
-                loginBtn.addEventListener('click', (e) => {
+            if (footerLoginLink) {
+                footerLoginLink.addEventListener('click', function (e) {
                     e.preventDefault();
-                    loginModal.style.display = 'flex';
+                    loginModal.classList.add('show');
                 });
             }
 
-            // Fermer le modal quand on clique sur la croix
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    loginModal.style.display = 'none';
+            // Fermer le modal de connexion
+            if (closeLoginModal) {
+                closeLoginModal.addEventListener('click', function () {
+                    loginModal.classList.remove('show');
                 });
             }
 
-            // Fermer le modal quand on clique en dehors du contenu
-            window.addEventListener('click', (e) => {
+            // Fermer le modal en cliquant en dehors
+            window.addEventListener('click', function (e) {
                 if (e.target === loginModal) {
-                    loginModal.style.display = 'none';
+                    loginModal.classList.remove('show');
                 }
             });
 
-            // Gérer le formulaire de connexion
+            // Formulaire de connexion
             const loginForm = document.getElementById('login-form');
             if (loginForm) {
-                loginForm.addEventListener('submit', async (e) => {
+                loginForm.addEventListener('submit', async function (e) {
                     e.preventDefault();
 
-                    const email = document.getElementById('email').value;
-                    const password = document.getElementById('password').value;
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
 
                     await login(email, password);
                 });
             }
-        }
 
-        // Connexion d'un utilisateur
-        async function login(email, password) {
-            try {
-                // Désactiver le bouton pendant la connexion
-                const submitBtn = document.querySelector('#login-form button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
-                }
+            // Recherche
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
 
-                // Connexion avec Supabase
-                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-                    email,
-                    password
+            if (searchInput && searchBtn) {
+                searchBtn.addEventListener('click', function () {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                    }
                 });
 
-                // Réinitialiser le bouton
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Se connecter';
-                }
-
-                if (error) throw error;
-
-                // Récupérer les données de l'utilisateur
-                const { data: userData, error: userError } = await window.supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('id', data.user.id)
-                    .single();
-
-                if (userData) {
-                    currentUser = {
-                        id: data.user.id,
-                        email: data.user.email,
-                        name: userData.name,
-                        isAdmin: userData.is_admin || false
-                    };
-                    isUserAdmin = userData.is_admin || false;
-                } else {
-                    // Si l'utilisateur n'existe pas dans notre table, l'ajouter
-                    await checkAuthStatus();
-                }
-
-                // Fermer le modal de connexion
-                const loginModal = document.getElementById('login-modal');
-                if (loginModal) {
-                    loginModal.style.display = 'none';
-                }
-
-                // Mettre à jour l'interface
-                updateAuthUI();
-
-                showMessage(`Connexion réussie !`, 'success');
-
-                return true;
-            } catch (error) {
-                console.error("Erreur de connexion:", error);
-
-                let errorMessage = 'Identifiants incorrects.';
-                if (error.message) {
-                    if (error.message.includes('Invalid login credentials')) {
-                        errorMessage = 'Email ou mot de passe incorrect.';
-                    } else if (error.message.includes('Email not confirmed')) {
-                        errorMessage = 'Veuillez confirmer votre email avant de vous connecter.';
-                    } else {
-                        errorMessage = 'Erreur: ' + error.message;
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        const query = this.value.trim();
+                        if (query) {
+                            window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+                        }
                     }
-                }
-
-                showMessage(errorMessage, 'error');
-
-                // Réinitialiser le bouton si ce n'est pas déjà fait
-                const loginButton = document.querySelector('#login-form button[type="submit"]');
-                if (loginButton && loginButton.disabled) {
-                    loginButton.innerHTML = 'Se connecter';
-                    loginButton.disabled = false;
-                }
-
-                return false;
+                });
             }
         }
 
-        // Déconnexion d'un utilisateur
-        async function logout() {
-            try {
-                const { error } = await window.supabaseClient.auth.signOut();
-
-                if (error) throw error;
-
-                currentUser = null;
-                isUserAdmin = false;
-
-                // Mettre à jour l'interface
-                updateAuthUI();
-
-                showMessage('Vous avez été déconnecté.', 'info');
-
-                return true;
-            } catch (error) {
-                console.error("Erreur de déconnexion:", error);
-                showMessage('Erreur lors de la déconnexion.', 'error');
-                return false;
-            }
-        }
-
-        // Charger les applications depuis Supabase
-        async function loadApps() {
+        // Charger les applications vedettes
+        async function loadFeaturedApps() {
             const featuredAppsContainer = document.getElementById('featured-apps-container');
-            const allAppsContainer = document.getElementById('all-apps-container');
 
-            if (!featuredAppsContainer || !allAppsContainer) return;
+            if (!featuredAppsContainer) return;
 
             try {
                 // Afficher un indicateur de chargement
-                featuredAppsContainer.innerHTML = `<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Chargement des applications...</div>`;
-                allAppsContainer.innerHTML = `<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Chargement des applications...</div>`;
+                featuredAppsContainer.innerHTML = `
+          <div class="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Chargement des applications vedettes...
+          </div>
+        `;
 
-                // Charger les applications depuis Supabase
-                const { data, error } = await window.supabaseClient
+                // Récupérer les applications vedettes depuis Supabase
+                const { data, error } = await supabase
                     .from('apps')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .eq('featured', true)
+                    .order('created_at', { ascending: false })
+                    .limit(6);
 
                 if (error) throw error;
 
-                appsData = data || [];
+                // Mettre à jour appsData
+                const featuredApps = data || [];
 
-                // Vider les conteneurs
+                // Vider le conteneur
                 featuredAppsContainer.innerHTML = '';
-                allAppsContainer.innerHTML = '';
 
-                // Vérifier si des applications ont été trouvées
-                if (appsData.length === 0) {
-                    featuredAppsContainer.innerHTML = '<p>Aucune application vedette disponible.</p>';
-                    allAppsContainer.innerHTML = '<p>Aucune application disponible.</p>';
-                    return;
-                }
-
-                // Afficher les applications vedettes
-                const featuredApps = appsData.filter(app => app.featured);
-
+                // Afficher les applications
                 if (featuredApps.length > 0) {
                     featuredApps.forEach(app => {
                         const appCard = createAppCard(app);
                         featuredAppsContainer.appendChild(appCard);
                     });
                 } else {
-                    featuredAppsContainer.innerHTML = '<p>Aucune application vedette disponible.</p>';
-                }
-
-                // Afficher toutes les applications
-                if (appsData.length > 0) {
-                    appsData.forEach(app => {
-                        const appCard = createAppCard(app);
-                        allAppsContainer.appendChild(appCard);
-                    });
-                } else {
-                    allAppsContainer.innerHTML = '<p>Aucune application disponible.</p>';
+                    featuredAppsContainer.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-star"></i>
+              <p>Aucune application vedette pour le moment.</p>
+            </div>
+          `;
                 }
             } catch (error) {
-                console.error("Erreur lors du chargement des applications:", error);
-                featuredAppsContainer.innerHTML = '<p>Erreur lors du chargement des applications vedettes.</p>';
-                allAppsContainer.innerHTML = '<p>Erreur lors du chargement des applications.</p>';
+                console.error("Erreur lors du chargement des applications vedettes:", error);
+                featuredAppsContainer.innerHTML = `
+          <div class="error-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Impossible de charger les applications vedettes.</p>
+            <button class="btn secondary" onclick="loadFeaturedApps()">Réessayer</button>
+          </div>
+        `;
+            }
+        }
+
+        // Charger les applications récentes
+        async function loadRecentApps() {
+            const recentAppsContainer = document.getElementById('recent-apps-container');
+
+            if (!recentAppsContainer) return;
+
+            try {
+                // Afficher un indicateur de chargement
+                recentAppsContainer.innerHTML = `
+          <div class="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Chargement des applications récentes...
+          </div>
+        `;
+
+                // Récupérer les applications récentes depuis Supabase
+                const { data, error } = await supabase
+                    .from('apps')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(6);
+
+                if (error) throw error;
+
+                // Mettre à jour appsData
+                const recentApps = data || [];
+
+                // Vider le conteneur
+                recentAppsContainer.innerHTML = '';
+
+                // Afficher les applications
+                if (recentApps.length > 0) {
+                    recentApps.forEach(app => {
+                        const appCard = createAppCard(app);
+                        recentAppsContainer.appendChild(appCard);
+                    });
+                } else {
+                    recentAppsContainer.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-clock"></i>
+              <p>Aucune application récente pour le moment.</p>
+            </div>
+          `;
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement des applications récentes:", error);
+                recentAppsContainer.innerHTML = `
+          <div class="error-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Impossible de charger les applications récentes.</p>
+            <button class="btn secondary" onclick="loadRecentApps()">Réessayer</button>
+          </div>
+        `;
+            }
+        }
+
+        // Charger les catégories
+        async function loadCategories() {
+            const categoriesContainer = document.getElementById('categories-container');
+
+            if (!categoriesContainer) return;
+
+            try {
+                // Afficher un indicateur de chargement
+                categoriesContainer.innerHTML = `
+          <div class="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Chargement des catégories...
+          </div>
+        `;
+
+                // Récupérer les catégories depuis Supabase
+                const { data, error } = await supabase
+                    .from('categories')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                // Mettre à jour categoriesData
+                categoriesData = data || [];
+
+                // Vider le conteneur
+                categoriesContainer.innerHTML = '';
+
+                // Afficher les catégories
+                if (categoriesData.length > 0) {
+                    categoriesData.forEach(category => {
+                        const categoryCard = createCategoryCard(category);
+                        categoriesContainer.appendChild(categoryCard);
+                    });
+                } else {
+                    categoriesContainer.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-folder"></i>
+              <p>Aucune catégorie disponible pour le moment.</p>
+            </div>
+          `;
+                }
+            } catch (error) {
+                console.error("Erreur lors du chargement des catégories:", error);
+                categoriesContainer.innerHTML = `
+          <div class="error-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Impossible de charger les catégories.</p>
+            <button class="btn secondary" onclick="loadCategories()">Réessayer</button>
+          </div>
+        `;
             }
         }
 
@@ -456,24 +531,45 @@
             const card = document.createElement('div');
             card.className = 'app-card';
 
-            // Création des étoiles pour l'affichage de la note
+            // Générer les étoiles pour l'affichage de la note
             const starsHTML = generateStars(app.rating);
 
             card.innerHTML = `
-        <img src="${app.banner}" alt="${app.name}">
-        <img src="${app.icon}" alt="${app.name} icon" class="app-icon">
-        <div class="app-info">
-          <h4>${app.name}</h4>
-          <div class="app-developer">${app.developer}</div>
-          <div class="app-description">${app.short_description}</div>
-          <div class="app-meta">
-            <div class="app-rating">
+        <div class="app-card-banner">
+          <img src="${app.banner}" alt="${app.name}" loading="lazy">
+        </div>
+        <div class="app-card-content">
+          <div class="app-card-icon">
+            <img src="${app.icon}" alt="${app.name} icon" loading="lazy">
+          </div>
+          <h4 class="app-card-title">${app.name}</h4>
+          <div class="app-card-developer">${app.developer}</div>
+          <div class="app-card-description">${app.short_description}</div>
+          <div class="app-card-meta">
+            <div class="app-card-rating">
               <div class="stars">${starsHTML}</div>
               <div class="rating-value">${app.rating.toFixed(1)}</div>
             </div>
             <a href="app-details.html?id=${app.id}" class="btn secondary">Voir</a>
           </div>
         </div>
+      `;
+
+            return card;
+        }
+
+        // Créer une carte de catégorie
+        function createCategoryCard(category) {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+
+            card.innerHTML = `
+        <a href="categories.html?category=${category.id}">
+          <div class="category-icon">
+            <i class="${category.icon || 'fas fa-folder'}"></i>
+          </div>
+          <h4 class="category-name">${category.name}</h4>
+        </a>
       `;
 
             return card;
@@ -505,20 +601,154 @@
             return stars;
         }
 
-        // Afficher des messages à l'utilisateur
+        // Connexion
+        async function login(email, password) {
+            try {
+                // Afficher un indicateur de chargement
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) {
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
+                    }
+                }
+
+                // Connexion avec Supabase
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                // Récupérer les données utilisateur
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (userError && userError.code !== 'PGRST116') {
+                    console.error("Erreur lors de la récupération des données utilisateur:", userError);
+                }
+
+                // Mettre à jour l'utilisateur actuel
+                currentUser = {
+                    id: data.user.id,
+                    email: data.user.email,
+                    name: userData?.name || 'Utilisateur',
+                    isAdmin: userData?.is_admin || false
+                };
+                isUserAdmin = userData?.is_admin || false;
+
+                // Fermer le modal
+                document.getElementById('login-modal').classList.remove('show');
+
+                // Afficher un message de succès
+                showMessage('Connexion réussie !', 'success');
+
+                // Mettre à jour la navigation
+                updateNavigation(true);
+
+                return true;
+            } catch (error) {
+                console.error("Erreur lors de la connexion:", error);
+
+                // Afficher un message d'erreur
+                showMessage(error.message || 'Identifiants incorrects.', 'error');
+
+                return false;
+            } finally {
+                // Réactiver le bouton de soumission
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) {
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Se connecter';
+                    }
+                }
+            }
+        }
+
+        // Déconnexion
+        async function logout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+
+                if (error) throw error;
+
+                // Réinitialiser l'utilisateur actuel
+                currentUser = null;
+                isUserAdmin = false;
+
+                // Afficher un message de succès
+                showMessage('Vous avez été déconnecté.', 'info');
+
+                // Mettre à jour la navigation
+                updateNavigation(false);
+
+                return true;
+            } catch (error) {
+                console.error("Erreur lors de la déconnexion:", error);
+
+                // Afficher un message d'erreur
+                showMessage('Erreur lors de la déconnexion.', 'error');
+
+                return false;
+            }
+        }
+
+        // Afficher un message
         function showMessage(message, type = 'info') {
             // Supprimer les messages existants
-            const existingMessages = document.querySelectorAll('.message');
+            const existingMessages = document.querySelectorAll('.message-toast');
             existingMessages.forEach(msg => msg.remove());
 
-            const messageContainer = document.createElement('div');
-            messageContainer.className = `message ${type}`;
-            messageContainer.textContent = message;
+            // Créer un nouveau message
+            const messageElement = document.createElement('div');
+            messageElement.className = `message-toast ${type}`;
+            messageElement.innerHTML = `
+        <div class="message-content">
+          <i class="${type === 'success' ? 'fas fa-check-circle' : type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle'}"></i>
+          <span>${message}</span>
+        </div>
+        <button class="close-message">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
 
-            document.body.appendChild(messageContainer);
+            // Ajouter au document
+            document.body.appendChild(messageElement);
 
-            // Afficher le message pendant 3 secondes
+            // Ajouter la classe d'affichage après un court délai (pour l'animation)
             setTimeout(() => {
-                messageContainer.remove();
-            }, 3000);
+                messageElement.classList.add('show');
+            }, 10);
+
+            // Ajouter un événement pour fermer le message
+            const closeBtn = messageElement.querySelector('.close-message');
+            closeBtn.addEventListener('click', () => {
+                messageElement.classList.remove('show');
+                setTimeout(() => {
+                    messageElement.remove();
+                }, 300);
+            });
+
+            // Fermer automatiquement après 5 secondes
+            setTimeout(() => {
+                if (document.body.contains(messageElement)) {
+                    messageElement.classList.remove('show');
+                    setTimeout(() => {
+                        if (document.body.contains(messageElement)) {
+                            messageElement.remove();
+                        }
+                    }, 300);
+                }
+            }, 5000);
         }
+    </script>
+</body>
+
+</html>
